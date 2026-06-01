@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "vcf-auto-mcp": {
+      "command": "node",
+      "args": ["D:\\Github\\vcf-auto-mcp\\dist\\index.js"]
+    }
+  }
+}

@@ -1,0 +1,1 @@
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="eth*|ens*|enp*", RUN+="/usr/local/bin/nm-auto-add-connection.sh $name"

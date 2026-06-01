@@ -1,0 +1,13 @@
+{
+    "name": "Custom.VPC.create",
+    "project": "admin",
+    "mainFunction": "handler",
+    "runtime": "python",
+    "defautlInputs": [
+        {
+            "type": "Default",
+            "name": "cloudZoneId",
+            "vlaue": ""
+        }
+    ]
+}
