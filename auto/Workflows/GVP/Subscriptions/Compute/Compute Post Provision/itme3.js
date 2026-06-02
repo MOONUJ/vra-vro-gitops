@@ -95,12 +95,6 @@ if (computeId && computeId != "N/A" && inputProperties.customProperties.profile)
         } else {
             var scripts = "";
         }
-        //scripts += 'echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99_network_disabled.cfg\n';
-        //scripts += "/usr/bin/cloud-init clean -s -l -c all\n";
-        //scripts += "/usr/bin/cloud-init init --local\n";
-        //scripts += "/usr/bin/cloud-init init\n";
-        //scripts += "/usr/bin/cloud-init modules --mode=config\n";
-        //scripts += "/usr/bin/cloud-init modules --mode=final\n";
         scripts += "/usr/bin/eject /dev/sr0\n";
         var vcConf = System.getModule("com.gvp").ConfManager().load("GVP/Endpoint/" + endpointName);
         var execScripts = System.getModule("com.gvp").execScripts;
@@ -139,13 +133,11 @@ if (computeId && computeId != "N/A" && inputProperties.customProperties.profile)
             }
 
             // Upload Token File to VM  
-            /*
-            if(mimeAttachment){
-                var guestDirPath = customProperties.osType == "LINUX"?"/etc/nvidia/ClientConfigToken": "";
+            if (mimeAttachment) {
+                var guestDirPath = customProperties.osType == "LINUX" ? "/etc/nvidia/ClientConfigToken" : "";
                 System.getModule("com.gvp").uploadFiletoVM(vm, "root", rootPassword, mimeAttachment, guestDirPath);
                 execScripts(vcConf.hostname, vcConf.username, vcConf.password, computeName, "root", rootPassword, "chmod +x /etc/nvidia/ClientConfigToken/" + mimeAttachment.name);
             }
-            */
 
 
             // Try GPU Device Attach
@@ -170,9 +162,6 @@ if (computeId && computeId != "N/A" && inputProperties.customProperties.profile)
                     var spec = new VcVirtualMachineConfigSpec();
                     spec.deviceChange = deviceChange;
                     var task = vm.reconfigVM_Task(spec);
-                    //System.getModule("com.vmware.library.vc.basic").vim3WaitTaskEnd(task, false, 1) ;
-                    //System.getModule("com.vmware.library.vc.vm.power").startVM(vm);
-                    //System.getModule("com.vmware.library.vc.vm.tools").vim3WaitToolsStarted(vm, 1, 5);
                 } else if (pciDevice.length == 0) {
                     for (var key in devices) {
                         System.log("PCI Device == 0");
@@ -212,7 +201,6 @@ if (computeId && computeId != "N/A" && inputProperties.customProperties.profile)
 
                 var powerTask = vm.powerOnVM_Task();
                 System.getModule("com.vmware.library.vc.basic").vim3WaitTaskEnd(powerTask, false, 1);
-                //System.getModule("com.vmware.library.vc.vm.power").startVM(vm);
                 System.getModule("com.vmware.library.vc.vm.tools").vim3WaitToolsStarted(vm, 1, 5);
             } catch (e) {
                 throw e
