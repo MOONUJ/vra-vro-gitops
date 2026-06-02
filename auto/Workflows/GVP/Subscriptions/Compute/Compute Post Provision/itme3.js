@@ -45,7 +45,7 @@ if (computeId && computeId != "N/A" && inputProperties.customProperties.profile)
     var bridgeIps = "";
     var vm = VcPlugin.getAllVirtualMachines(null, "xpath:name='" + computeName + "'")[0];
     if (!customProperties.dynamicNetworks) {
-        for each(var intfLink in compute.networkInterfaceLinks) {
+        for (var intfLink of compute.networkInterfaceLinks) {
             var interfaceId = intfLink.split("/network-interfaces/")[1];
             var interface = aa.getUerp(intfLink);
             var tag = aa.getUerp(interface.tagLinks[0]);
@@ -95,12 +95,13 @@ if (computeId && computeId != "N/A" && inputProperties.customProperties.profile)
         } else {
             var scripts = "";
         }
-        scripts += 'echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99_network_disabled.cfg\n';
-        scripts += "/usr/bin/cloud-init clean -s -l -c all\n";
-        scripts += "/usr/bin/cloud-init init --local\n";
-        scripts += "/usr/bin/cloud-init init\n";
-        scripts += "/usr/bin/cloud-init modules --mode=config\n";
-        scripts += "/usr/bin/cloud-init modules --mode=final\n";
+        //scripts += 'echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99_network_disabled.cfg\n';
+        //scripts += "/usr/bin/cloud-init clean -s -l -c all\n";
+        //scripts += "/usr/bin/cloud-init init --local\n";
+        //scripts += "/usr/bin/cloud-init init\n";
+        //scripts += "/usr/bin/cloud-init modules --mode=config\n";
+        //scripts += "/usr/bin/cloud-init modules --mode=final\n";
+        scripts += "/usr/bin/eject /dev/sr0\n";
         var vcConf = System.getModule("com.gvp").ConfManager().load("GVP/Endpoint/" + endpointName);
         var execScripts = System.getModule("com.gvp").execScripts;
         var execResult = execScripts(vcConf.hostname, vcConf.username, vcConf.password, computeName, "root", rootPassword, scripts);
@@ -120,7 +121,7 @@ if (computeId && computeId != "N/A" && inputProperties.customProperties.profile)
             System.log("Find License Token File")
             var conv = System.getModule("com.gvp").Converter();
             var subCategories = Server.getResourceElementCategoryWithPath("GVP/token").subCategories;
-            for each(var subCategory in subCategories) {
+            for (var subCategory of subCategories) {
                 var cidr = subCategory.name;
                 var subnetmask = 32 - Number(cidr.split("|")[1]);
 
