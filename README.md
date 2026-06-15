@@ -4,19 +4,18 @@
 
 ## 🚀 주요 기능 (Features)
 
-1. **태그(Tag) 기반 자원 탐색 및 Pull**: 
-   - `config.json`에 정의된 태그(예: `gvp`)가 지정된 vRO 워크플로우(Workflows), 액션(Actions), 환경설정(Configurations), 리소스(Resources) 자원들을 동적으로 감지하여 로컬 저장소로 한 번에 가져옵니다.
-2. **코드 및 구성 분리 추출 (Pull)**:
-   - **Workflows**: 워크플로우 전체 스키마(`content.json`) 내에서 JavaScript 코드와 매개변수 바인딩 정보를 파싱하여 `workflow-items/{item_name}/` 경로 아래에 개별 파일(`value.js`, `in-binding.json`, `out-binding.json`)로 자동 분할 저장합니다.
-   - **Actions**: 액션 메타데이터와 스크립트 코드를 분리하여 `script.js` 및 `action.json` 형태로 보관합니다.
-   - **Configurations**: 환경설정 요소의 속성(Attributes) 값을 `T4-1G.json` 등 깔끔한 속성 정의 JSON 파일로 보관합니다.
-   - **Resources**: 리소스 요소의 메타데이터와 본문 파일을 분리하여 개별 폴더 내에 저장합니다.
-3. **인메모리 조립 및 동기화 (Push)**:
-   - 로컬에서 수정한 코드 및 구성 정보들을 읽어와 서버 API로 전송 시 동적으로 조립하여 vRO 서버에 업데이트합니다.
-4. **통합 패키지(.package) 기반 부트스트랩**:
-   - 신규 서버 환경이거나 주요 자원이 누락된 경우, 동기화된 모든 자원을 포함하는 바이너리 패키지(`.package`)를 자동으로 임포트하여 전체 인벤토리 뼈대를 빌드(Bootstrap)하고 코드를 덮어씁니다.
-5. **토큰 기반 보안 인증**:
-   - ID/Password 방식을 차단하고 Refresh Token (API Token)만을 기반으로 단일 OAuth Access Token을 획득하여 vRA/vRO API 연동을 통합합니다.
+1. **하이브리드 아키텍처 역할 분담**:
+   - **Terraform (`/vra`)**: 초기 인프라 레이어(Cloud Account, Cloud Zone, Network/Storage Profiles, Image Mappings, Project)를 IaC로 선언적 구축 및 초기화합니다.
+   - **Python GitOps (`/auto`, `/vro`, `gitops/`)**: 셀프서비스 카탈로그 구성요소(Blueprints, Custom Resources, Resource Actions, Catalog, Policies, ABX, Subscriptions) 및 vRO 오케스트레이션 코드(Workflows, Actions, Configurations, Resources)를 동적 동기화합니다.
+2. **태그(Tag) 기반 자원 탐색 및 Pull**: 
+   - `config.json`에 정의된 태그(예: `gvp`)가 지정된 vRO/vRA 자원들을 동적으로 감지하여 로컬 저장소로 한 번에 가져옵니다.
+3. **코드 및 구성 분리 추출 (Pull)**:
+   - **Workflows/ABX Actions**: 코드를 매개변수 및 메타데이터와 분리하여 스크립트 파일(`.js`/`.py`)로 깔끔하게 추출합니다.
+   - **Configurations/Forms**: 환경설정 및 속성 정의를 직관적인 JSON 파일로 저장합니다.
+4. **인메모리 조립 및 동기화 (Push)**:
+   - 로컬에서 수정된 코드 및 설정 파일들을 로드하여 서버 전송 시 동적으로 병합 조립 후 업데이트합니다.
+5. **보안 인증 통합**:
+   - Refresh Token (API Token) 기반의 단일 Access Token 획득 방식을 공유하여 vRA/vRO API 연동을 통합 처리합니다.
 
 ---
 
@@ -28,10 +27,15 @@
 
 ## 🛠️ 준비 사항 (Prerequisites)
 
-이 스크립트는 **Python 3** 환경에서 동작하며 HTTP 요청 전송을 위해 `requests` 패키지가 필요합니다:
+이 도구들은 **Terraform** 및 **Python 3** 환경에서 동작합니다:
 
 ```bash
+# Python dependencies
 pip3 install requests
+
+# Terraform 설치 (macOS 예시)
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
 ```
 
 ---
@@ -45,31 +49,28 @@ pip3 install requests
 cp gitops/config.json.template gitops/config.json
 ```
 
-**`gitops/config.json` 작성 예시:**
-```json
-{
-  "vcf_url": "https://poscodx-auto.gooddi.lab",
-  "org": "poscodx",
-  "refresh_token": "AZzAiW6dkxVHSCGAkAMR7ZUPOLvjlEbT",
-  "verify_ssl": false,
-  "gitops_tag": "gvp",
-  "package": {
-    "name": "com.gvp.poscodx",
-    "local_path": "vro/packages/com.gvp.poscodx.package"
-  }
-}
+### 2. 초기 인프라 세팅 (Terraform)
+`/vra` 디렉토리로 이동하여 초기 인프라를 프로비저닝합니다:
+
+```bash
+cd vra
+cp terraform.tfvars.template terraform.tfvars
+# terraform.tfvars 수정 후:
+terraform init
+terraform plan
+terraform apply
 ```
 
-### 2. 동기화 명령어 실행
+### 3. GitOps 동기화 명령어 실행 (CLI)
 
 #### 📥 서버 ➔ 로컬 가져오기 (Pull)
-서버에 지정된 태그(예: `gvp`)가 달린 자원들과 최신 패키지 백업 파일을 로컬로 동적 수집합니다:
+서버에 지정된 태그(예: `gvp`)가 달린 vRO/vRA 자원들을 로컬로 일괄 동적 수집합니다:
 ```bash
 python3 gitops/vcf_gitops.py pull-all
 ```
 
 #### 📤 로컬 ➔ 서버 내보내기 (Push)
-로컬 Git의 수정사항을 다시 vRO 서버에 밀어넣습니다 (서버에 워크플로우가 없는 경우 자동으로 설정된 `.package`를 배포하여 부트스트랩을 우선 진행합니다):
+로컬 Git의 수정사항을 vRO 및 vRA 서버에 밀어넣습니다:
 ```bash
 python3 gitops/vcf_gitops.py push-all
 ```
@@ -78,12 +79,6 @@ python3 gitops/vcf_gitops.py push-all
 서버와 로컬 Git 저장소의 소스코드 및 구성을 비교하여 변경 리포트(In Sync, Modified, Local Only, Server Only)를 확인합니다:
 ```bash
 python3 gitops/vcf_gitops.py status
-```
-
-#### 🔄 강제 패키지 임포트 후 내보내기 (Bootstrap)
-임포트 프로세스를 강제하여 패키지를 덮어쓴 뒤 소스코드를 적용하려는 경우 `--bootstrap` 플래그를 추가합니다:
-```bash
-python3 gitops/vcf_gitops.py push-all --bootstrap
 ```
 
 #### 🔍 모의 실행 (Dry Run)
@@ -96,8 +91,8 @@ python3 gitops/vcf_gitops.py --dry-run push-all
 
 ## 🔄 권장 개발 워크플로우 (GitOps Workflow)
 
-1. **상태 확인**: `python3 gitops/vcf_gitops.py status` 명령을 실행하여 로컬과 서버의 변경 차이를 먼저 확인합니다.
-2. **로컬 수정**: 각 자원 파일(워크플로우 JS, 액션 JS, 구성 요소 JSON, 리소스 본문 파일 등)에서 수정을 진행합니다.
-3. **모의 검증**: `python3 gitops/vcf_gitops.py --dry-run push-all`을 실행하여 빌드 에러 및 변경 대상을 검증합니다.
-4. **서버 배포**: `python3 gitops/vcf_gitops.py push-all`을 통해 실시간 vRO 서버 배포 및 동작을 확인합니다.
-5. **Git 커밋**: 작업 완료 후 수정한 코드 및 설정 파일(`.js`, `.json` 등)과 업데이트된 `.package` 바이너리를 Git에 스테이징하여 커밋 및 푸시합니다.
+1. **상태 확인**: `python3 gitops/vcf_gitops.py status` 명령을 실행하여 로컬과 서버의 변경 차이를 확인합니다.
+2. **로컬 수정**: 각 자원 파일(JS/Python 코드, JSON 설정, YAML 블루프린트 등)에서 수정을 진행합니다.
+3. **모의 검증**: `python3 gitops/vcf_gitops.py --dry-run push-all`을 실행하여 변경 대상을 최종 검증합니다.
+4. **서버 배포**: `python3 gitops/vcf_gitops.py push-all`을 통해 실시간 서버 배포 및 동작을 반영합니다.
+5. **Git 커밋**: 작업 완료 후 수정한 코드 및 설정 파일들을 Git에 스테이징하여 커밋 및 푸시합니다.

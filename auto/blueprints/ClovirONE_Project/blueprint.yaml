@@ -1,0 +1,196 @@
+formatVersion: 1
+inputs:
+  # metadata <static>
+  _metadata_main_catalog:
+    type: string
+    title: Metadata Category
+    readOnly: true
+    default: Policy
+  _metadata_catalog:
+    type: string
+    title: Metadata Catalog
+    readOnly: true
+    default: Project
+  _metadata_resource_type:
+    type: string
+    title: Metadata Resource Type
+    readOnly: true
+    default: Custom.Project
+  _metadata_available:
+    type: string
+    title: Metadata Available
+    readOnly: true
+    default: project admin
+  # hidden <static>
+  # hidden <admin>
+  _admin_project_name:
+    type: string
+    title: Admin Project Name
+    default: admin
+  _system_approver:
+    type: string
+    title: System Approver Username
+    default: admin
+  _default_supervisors:
+    type: array
+    title: Default Supervisor Usernames
+    items:
+      type: string
+      title: Username
+      pattern: ^[a-zA-Z0-9_\.\-]+
+    default: []
+  _approval_actions:
+    type: array
+    title: Approval Actions
+    items:
+      type: string
+      title: Action ID
+    default:
+      - Deployment.Create
+  _auto_approval_decision:
+    type: string
+    title: Auto Approval Decision
+    enum:
+      - APPROVE
+      - REJECT
+    default: REJECT
+  _auto_approval_expiry:
+    type: number
+    title: Auto Approval Expiry Days
+    default: 1
+  _catalogs:
+    type: array
+    title: Catalogs
+    $dynamicDefault: /data/vro-actions/com.gvp.bp.prj/getVpcCatalogsByAdminProjectName?adminProjectName={{_admin_project_name}}
+    items:
+      type: string
+      title: Catalog
+      $dynamicEnum: /data/vro-actions/com.gvp.bp.prj/getVpcCatalogsByAdminProjectName?adminProjectName={{_admin_project_name}}
+  _admin_project_uuid:
+    type: string
+    title: admin project uuid
+    readOnly: true
+    default: 3e251b62-d0e5-4e28-930e-a08f4bd2b70c
+  # user inputs <variable>
+  requestMessage:
+    type: string
+    title: Request Message
+  displayName:
+    type: string
+    title: Display Name
+  codeName:
+    type: string
+    title: Code Name
+    #$dynamicDefault: /data/vro-actions/com.gvp.bp.prj/getRandomString?type=lowerDigit&length=8
+    #pattern: ^[a-z][0-9a-z]+$
+    minLength: 2
+    maxLength: 16
+  administrators:
+    type: array
+    title: Administrator Usernames
+    description: User.username
+    items:
+      type: string
+      title: Username
+      pattern: ^[a-zA-Z0-9_\.\-]+
+  members:
+    type: array
+    title: Member Usernames
+    description: User.username
+    default: []
+    items:
+      type: string
+      title: Username
+      pattern: ^[a-zA-Z0-9_\.\-]+
+  viewers:
+    type: array
+    title: Viewer Usernames
+    description: User.username
+    default: []
+    items:
+      type: string
+      title: Username
+      pattern: ^[a-zA-Z0-9_\.\-]+
+  supervisors:
+    type: array
+    title: Supervisor Usernames
+    description: User.username
+    default: []
+    items:
+      type: string
+      title: Username
+      pattern: ^[a-zA-Z0-9_\.\-]+
+  sharedResources:
+    type: boolean
+    title: Shared Resources
+    default: true
+  cloudZones:
+    type: array
+    title: Availability Zones
+    $dynamicDefault: /data/vro-actions/com.gvp.bp.prj/getCloudZones?profile={{profile}}
+    items:
+      type: string
+      title: Availability Zone
+      $dynamicEnum: /data/vro-actions/com.gvp.bp.prj/getCloudZones?profile={{profile}}
+  placementPolicy:
+    type: string
+    title: Placement Policy
+    default: default
+    oneOf:
+      - title: Default
+        const: default
+      - title: Spread
+        const: spread
+  organization:
+    type: string
+    title: organization
+    default: default
+  profile:
+    type: string
+    title: Profile for dev,stg,prd
+    oneOf:
+      - title: 개발
+        const: develop
+      - title: 운영
+        const: product
+  createDefaultDeployments:
+    type: boolean
+    title: Automate Create VPC, Segment
+    default: false
+  startDateTime:
+    type: string
+    title: Start Date Time
+    default: ''
+  endDateTime:
+    type: string
+    title: End Date Time
+    default: ''
+resources:
+  project:
+    type: Custom.Project
+    metadata:
+      layoutPosition:
+        - 1
+        - 1
+    properties:
+      name: ${input.codeName}
+      displayName: ${input.displayName}
+      requestMessage: ${input.requestMessage}
+      administrators: ${input.administrators}
+      members: ${input.members}
+      viewers: ${input.viewers}
+      supervisors: ${input.supervisors + input._default_supervisors}
+      sharedResources: ${input.sharedResources}
+      cloudZones: ${input.cloudZones}
+      placementPolicy: default
+      organization: ${input.organization}
+      catalogs: ${input._catalogs}
+      approver: ${input._system_approver}
+      approvalActions: ${input._approval_actions}
+      autoApprovalDecision: ${input._auto_approval_decision}
+      autoApprovalExpiry: ${input._auto_approval_expiry}
+      profile: ${input.profile}
+      codeName: ${input.codeName}
+      createDefaultDeployments: ${input.createDefaultDeployments}
+      startDateTime: ${input.startDateTime}
+      endDateTime: ${input.endDateTime}

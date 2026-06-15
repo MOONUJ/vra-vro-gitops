@@ -1,0 +1,171 @@
+{
+    "id": "7e6f43a3-9137-4d26-a2b9-f38bdcb739ab",
+    "name": "GVP VRO",
+    "description": "GVP VRO Content Source",
+    "typeId": "com.vmw.vro.workflow",
+    "createdAt": "2026-05-18T02:33:20.452022Z",
+    "createdBy": "admin",
+    "lastUpdatedAt": "2026-06-15T04:16:39.054939Z",
+    "lastUpdatedBy": "system-user",
+    "config": {
+        "workflows": [
+            {
+                "id": "766d8c20-54af-4662-8a79-11abf900a1bf",
+                "name": "Batch Get GPU Info",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "11fe1535-4278-43a8-b9d7-6d8bbe5bb807",
+                "name": "GPU VM 자원 변경",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "c9be76f6-5627-4c39-9b43-44aac01ef4d5",
+                "name": "VM 모니터링 활성화",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "0f2d7ede-4db4-46b8-97c0-4bcfaa946690",
+                "name": "VM 네트워크 어댑터 추가",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "852a12dd-2594-456d-b074-b37ad83a8032",
+                "name": "VM 디스크 확장",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "f4264fae-ca2a-4380-97c6-b6e909df4a20",
+                "name": "VM 자원 변경",
+                "version": "0.0.2",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "6404903b-4846-4b75-b52b-89008705c78e",
+                "name": "VM IP 변경",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "bdf77007-be98-4243-8b4e-677ec1cb5bf5",
+                "name": "프로젝트 이관",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "7070395d-e818-4b5d-9b3b-361ccf3c8621",
+                "name": "자원 삭제",
+                "version": "0.0.2",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "528a832b-cf20-4157-a348-6825212f46ea",
+                "name": "VM.PowerOff",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "6ce35348-0d51-4701-b2e2-96b188a9f933",
+                "name": "VM.PowerOn",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "26df47a4-f567-42dd-8874-73dd94d1b05f",
+                "name": "VM.Reboot",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "e1bfea66-2e69-44e4-861d-eab25cd9e1e6",
+                "name": "VM.Reset",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "6c65fc19-e087-45f9-b815-ba298da3976b",
+                "name": "VM.ShutdownGuest",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            },
+            {
+                "id": "b2b4ccc7-05ba-4503-8cb2-8ad853956473",
+                "name": "VM.Suspend",
+                "version": "0.0.0",
+                "integration": {
+                    "name": "orchestrator",
+                    "endpointUri": "https://embedded.orchestrator",
+                    "endpointConfigurationLink": "/resources/endpoints/84639495-5b98-4b0f-8746-7f62ecde3823"
+                }
+            }
+        ]
+    },
+    "itemsImported": 15,
+    "itemsFound": 15,
+    "lastImportStartedAt": "2026-06-15T04:16:36.155854Z",
+    "lastImportCompletedAt": "2026-06-15T04:16:39.054796Z",
+    "lastImportErrors": [],
+    "originOrgId": "2722874a-6ca3-4a92-b115-0b9cd804cdd1",
+    "global": true
+}

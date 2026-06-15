@@ -1,0 +1,20 @@
+{
+    "id": "44cfc83b-3a68-4d6b-82e9-e4f033691efa",
+    "createdAt": "2026-05-18T02:32:53.881483Z",
+    "createdBy": "admin",
+    "updatedAt": "2026-06-09T06:24:41.985347Z",
+    "updatedBy": "admin",
+    "orgId": "2722874a-6ca3-4a92-b115-0b9cd804cdd1",
+    "projectId": "3e251b62-d0e5-4e28-930e-a08f4bd2b70c",
+    "projectName": "admin",
+    "selfLink": "/blueprint/api/blueprints/44cfc83b-3a68-4d6b-82e9-e4f033691efa",
+    "name": "ClovirONE_GPU VM_Rocky",
+    "description": "",
+    "status": "DRAFT",
+    "valid": true,
+    "validationMessages": [],
+    "totalVersions": 3,
+    "totalReleasedVersions": 3,
+    "requestScopeOrg": true,
+    "contentSourceSyncMessages": []
+}

@@ -1,0 +1,28 @@
+{
+    "name": "Custom.Project.create",
+    "createdMillis": 1779071572891,
+    "updatedMillis": 1780037079022,
+    "metadata": {},
+    "runtime": "python",
+    "entrypoint": "handler",
+    "description": "GVP from [20260515-113903] to [20260518-113252]",
+    "inputs": {},
+    "cpuShares": 1024,
+    "memoryInMB": 300,
+    "timeoutSeconds": 600,
+    "deploymentTimeoutSeconds": 900,
+    "actionType": "SCRIPT",
+    "provider": "on-prem",
+    "configuration": {
+        "const_azure-system_managed_identity": false
+    },
+    "system": false,
+    "shared": true,
+    "asyncDeployed": false,
+    "runtimeVersion": "3.11",
+    "id": "469280089e38cb4a019e38eddb8c0000",
+    "orgId": "2722874a-6ca3-4a92-b115-0b9cd804cdd1",
+    "projectId": "3e251b62-d0e5-4e28-930e-a08f4bd2b70c",
+    "selfLink": "/abx/api/resources/actions/469280089e38cb4a019e38eddb8c0000?projectId=3e251b62-d0e5-4e28-930e-a08f4bd2b70c",
+    "projectName": "admin"
+}

@@ -1,0 +1,11 @@
+{
+    "tenant": "2722874a-6ca3-4a92-b115-0b9cd804cdd1",
+    "id": "0689f7fc-8ff8-4e69-96a1-3fc5e53f2647",
+    "name": "Batch Get GPU Info",
+    "form": "{\"layout\":{\"pages\":[{\"id\":\"page_xxeud6xk\",\"title\":\"General\",\"sections\":[{\"id\":\"section_project\",\"fields\":[{\"id\":\"project\",\"display\":\"combobox\",\"state\":{\"visible\":true,\"read-only\":false},\"signpostPosition\":\"right-middle\"}]},{\"id\":\"section_deploymentName\",\"fields\":[{\"id\":\"deploymentName\",\"display\":\"textField\",\"signpostPosition\":\"right-middle\"}]},{\"id\":\"section_vzebx7yj\",\"fields\":[{\"id\":\"time\",\"display\":\"textField\",\"state\":{\"visible\":true,\"read-only\":false},\"signpostPosition\":\"right-middle\"}]},{\"id\":\"section_sfhhtkax\",\"fields\":[{\"id\":\"_metadata_main_catalog\",\"display\":\"textField\",\"state\":{\"visible\":true,\"read-only\":false},\"signpostPosition\":\"right-middle\"}]},{\"id\":\"section_mm8yxdjg\",\"fields\":[{\"id\":\"_metadata_catalog\",\"display\":\"textField\",\"state\":{\"visible\":true,\"read-only\":false},\"signpostPosition\":\"right-middle\"}]}]}]},\"schema\":{\"project\":{\"label\":\"Project\",\"type\":{\"dataType\":\"string\",\"isMultiple\":false},\"default\":\"3e251b62-d0e5-4e28-930e-a08f4bd2b70c\",\"valueList\":{\"id\":\"projects\",\"type\":\"scriptAction\"},\"constraints\":{\"required\":true}},\"deploymentName\":{\"label\":\"Deployment Name\",\"type\":{\"dataType\":\"string\",\"isMultiple\":false},\"constraints\":{\"required\":true,\"max-value\":900}},\"time\":{\"label\":\"time\",\"type\":{\"dataType\":\"string\"},\"constraints\":{\"required\":false}},\"_metadata_main_catalog\":{\"label\":\"_metadata_main_catalog\",\"type\":{\"dataType\":\"string\"},\"default\":\"Action\",\"constraints\":{\"required\":false}},\"_metadata_catalog\":{\"label\":\"_metadata_catalog\",\"type\":{\"dataType\":\"string\"},\"default\":\"GPU.Batch\",\"constraints\":{\"required\":false}}},\"options\":{\"externalValidations\":[]}}",
+    "sourceType": "com.vmw.vro.workflow",
+    "sourceId": "c933544a-d7f1-3ea1-94a8-561aedd53248",
+    "type": "requestForm",
+    "status": "ON",
+    "formFormat": "JSON"
+}

@@ -4,3 +4,11 @@ __pycache__/
 .DS_Store
 vco_openapi.json
 *.pdf
+
+# Terraform ignores
+.terraform/
+*.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+

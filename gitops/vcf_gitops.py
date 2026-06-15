@@ -4,7 +4,9 @@ import sys
 import json
 import argparse
 import logging
+import re
 from vro_client import VroClient
+from vra_client import VraClient
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("vcf_gitops")
@@ -1067,6 +1069,886 @@ def status(client, config, root_dir):
     print("Summary: " + " | ".join(summary_parts))
     print("==================================================\n")
 
+def matches_tag(resource, tag):
+    """
+    Checks if a resource name or tags matches the target gitops tag.
+    """
+    if not tag:
+        return False
+    tag_lower = tag.lower()
+    
+    # 1. Check name
+    name = resource.get("name", "")
+    if tag_lower in name.lower():
+        return True
+        
+    # 2. Check tags list
+    tags = resource.get("tags")
+    if not tags:
+        return False
+        
+    if isinstance(tags, list):
+        for t in tags:
+            if isinstance(t, dict):
+                if tag_lower in str(t.get("key", "")).lower() or tag_lower in str(t.get("value", "")).lower():
+                    return True
+            elif isinstance(t, str):
+                if tag_lower in t.lower():
+                    return True
+    elif isinstance(tags, dict):
+        for k, v in tags.items():
+            if tag_lower in k.lower() or tag_lower in str(v).lower():
+                return True
+                
+    return False
+
+def pull_all_vra(client, config, root_dir):
+    """
+    Sync from vRA server to local repository.
+    """
+    tag = config.get("gitops_tag")
+    if not tag:
+        logger.error("No 'gitops_tag' configured in config.json. Cannot execute pull-all-vra.")
+        sys.exit(1)
+        
+    target_projects = config.get("projects", [])
+    logger.info(f"--- Starting Pull-All Sync (vRA) for tag '{tag}' (Projects filter: {target_projects}) ---")
+    
+    # 1. Fetch projects cache
+    try:
+        projects = client.get_projects()
+        projects_by_id = {p["id"]: p for p in projects}
+        projects_by_name = {p["name"]: p["id"] for p in projects}
+    except Exception as e:
+        logger.error(f"Failed to fetch projects cache: {e}")
+        projects_by_id = {}
+        projects_by_name = {}
+        
+    target_project_ids = [projects_by_name[name] for name in target_projects if name in projects_by_name]
+    
+    def is_project_allowed(proj_id):
+        if not target_projects:
+            return True
+        return proj_id in target_project_ids
+        
+    auto_root = os.path.join(root_dir, "auto")
+    os.makedirs(auto_root, exist_ok=True)
+    
+    # 1. Pull Blueprints
+    try:
+        blueprints = client.list_blueprints()
+        matching_bps = [bp for bp in blueprints if is_project_allowed(bp.get("projectId"))]
+        logger.info(f"Discovered {len(matching_bps)} matching blueprints on the server.")
+        bp_root = os.path.join(auto_root, "blueprints")
+        os.makedirs(bp_root, exist_ok=True)
+        for bp in matching_bps:
+            bp_id = bp["id"]
+            bp_name = bp["name"]
+            try:
+                full_bp = client.get_blueprint(bp_id)
+                content = (full_bp.get("content") or "") if full_bp else ""
+                
+                proj_id = full_bp.get("projectId") if full_bp else None
+                proj_name = projects_by_id.get(proj_id, {}).get("name", "global")
+                
+                bp_dir = os.path.join(bp_root, bp_name)
+                os.makedirs(bp_dir, exist_ok=True)
+                
+                # Save metadata
+                meta = dict(full_bp)
+                meta.pop("content", None)
+                meta["projectName"] = proj_name
+                with open(os.path.join(bp_dir, "blueprint.json"), "w", encoding="utf-8") as f:
+                    json.dump(meta, f, indent=4, ensure_ascii=False)
+                    
+                # Save YAML content
+                with open(os.path.join(bp_dir, "blueprint.yaml"), "w", encoding="utf-8") as f:
+                    f.write(content)
+                logger.info(f"Successfully pulled blueprint '{bp_name}' (Project: {proj_name})")
+            except Exception as e:
+                logger.error(f"Failed to pull blueprint '{bp_name}': {e}")
+    except Exception as e:
+        logger.error(f"Failed to list blueprints: {e}")
+
+    # 2. Pull ABX Actions
+    try:
+        abx_actions = client.list_abx_actions()
+        matching_abxs = [act for act in abx_actions if is_project_allowed(act.get("projectId"))]
+        logger.info(f"Discovered {len(matching_abxs)} matching ABX Actions on the server.")
+        abx_root = os.path.join(auto_root, "abx")
+        os.makedirs(abx_root, exist_ok=True)
+        for act in matching_abxs:
+            act_id = act["id"]
+            act_name = act["name"]
+            try:
+                proj_id = act.get("projectId")
+                proj_name = projects_by_id.get(proj_id, {}).get("name", "global")
+                
+                abx_dir = os.path.join(abx_root, act_name)
+                os.makedirs(abx_dir, exist_ok=True)
+                
+                # Save script
+                script_code = act.get("source", "")
+                runtime = act.get("runtime", "python")
+                ext = "py"
+                if "node" in runtime:
+                    ext = "js"
+                script_file = f"source.{ext}"
+                
+                with open(os.path.join(abx_dir, script_file), "w", encoding="utf-8") as f:
+                    f.write(script_code)
+                    
+                # Save init metadata (clear source to keep clean)
+                meta = dict(act)
+                meta.pop("source", None)
+                meta["projectName"] = proj_name
+                with open(os.path.join(abx_dir, "init.json"), "w", encoding="utf-8") as f:
+                    json.dump(meta, f, indent=4, ensure_ascii=False)
+                logger.info(f"Successfully pulled ABX Action '{act_name}' (Project: {proj_name})")
+            except Exception as e:
+                logger.error(f"Failed to pull ABX Action '{act_name}': {e}")
+    except Exception as e:
+        logger.error(f"Failed to list ABX Actions: {e}")
+
+    def is_policy_allowed(policy):
+        if not target_projects:
+            return True
+        proj_id = policy.get("projectId")
+        if proj_id:
+            return is_project_allowed(proj_id)
+            
+        # Check scopeCriteria for matchesRegex/equals
+        scope = policy.get("scopeCriteria", {})
+        exprs = scope.get("matchExpression", [])
+        has_project_filter = False
+        project_matched = False
+        
+        for expr in exprs:
+            if expr.get("key") == "project.name":
+                has_project_filter = True
+                val = expr.get("value", "")
+                op = expr.get("operator", "")
+                
+                # Check match against target projects
+                for p_name in target_projects:
+                    if op == "matchesRegex":
+                        try:
+                            if re.match(val, p_name):
+                                project_matched = True
+                                break
+                        except Exception:
+                            pass
+                    elif op == "equals":
+                        if val == p_name:
+                            project_matched = True
+                            break
+                            
+        if has_project_filter:
+            return project_matched
+            
+        # Fallback to properties.projects list (Legacy/Other Policies)
+        props = policy.get("properties", {})
+        proj_list = props.get("projects", [])
+        if proj_list:
+            for p in proj_list:
+                if p in target_project_ids or projects_by_id.get(p, {}).get("name") in target_projects:
+                    return True
+            return False
+            
+        # If no project constraints are found, it's a global org-level policy
+        return True
+
+    # 3. Pull Custom Resources
+    try:
+        crs = client.list_custom_resources()
+        matching_crs = crs
+        logger.info(f"Discovered {len(matching_crs)} matching Custom Resources on the server.")
+        cr_dir = os.path.join(auto_root, "custom_resources")
+        os.makedirs(cr_dir, exist_ok=True)
+        for cr in matching_crs:
+            name = cr.get("displayName") or cr.get("name")
+            try:
+                with open(os.path.join(cr_dir, f"{name}.json"), "w", encoding="utf-8") as f:
+                    json.dump(cr, f, indent=4, ensure_ascii=False)
+                logger.info(f"Successfully pulled Custom Resource '{name}'")
+            except Exception as e:
+                logger.error(f"Failed to save Custom Resource '{name}': {e}")
+    except Exception as e:
+        logger.error(f"Failed to list Custom Resources: {e}")
+
+    # 4. Pull Resource Actions
+    try:
+        ras = client.list_resource_actions()
+        matching_ras = ras
+        logger.info(f"Discovered {len(matching_ras)} matching Resource Actions on the server.")
+        ra_dir = os.path.join(auto_root, "resource_actions")
+        os.makedirs(ra_dir, exist_ok=True)
+        for ra in matching_ras:
+            name = ra.get("displayName") or ra.get("name")
+            try:
+                with open(os.path.join(ra_dir, f"{name}.json"), "w", encoding="utf-8") as f:
+                    json.dump(ra, f, indent=4, ensure_ascii=False)
+                logger.info(f"Successfully pulled Resource Action '{name}'")
+            except Exception as e:
+                logger.error(f"Failed to save Resource Action '{name}': {e}")
+    except Exception as e:
+        logger.error(f"Failed to list Resource Actions: {e}")
+
+    # 5. Pull Catalog Sources
+    try:
+        css = client.list_catalog_sources()
+        matching_css = css
+        if target_projects:
+            filtered_css = []
+            for cs in matching_css:
+                proj_id = cs.get("projectId")
+                if not proj_id or is_project_allowed(proj_id):
+                    filtered_css.append(cs)
+            matching_css = filtered_css
+            
+        logger.info(f"Discovered {len(matching_css)} matching Catalog Sources on the server.")
+        cs_dir = os.path.join(auto_root, "catalog_sources")
+        os.makedirs(cs_dir, exist_ok=True)
+        for cs in matching_css:
+            name = cs.get("name")
+            try:
+                with open(os.path.join(cs_dir, f"{name}.json"), "w", encoding="utf-8") as f:
+                    json.dump(cs, f, indent=4, ensure_ascii=False)
+                logger.info(f"Successfully pulled Catalog Source '{name}'")
+            except Exception as e:
+                logger.error(f"Failed to save Catalog Source '{name}': {e}")
+    except Exception as e:
+        logger.error(f"Failed to list Catalog Sources: {e}")
+
+    # 6. Pull Policies
+    try:
+        pols = client.list_policies()
+        matching_pols = [pol for pol in pols if is_policy_allowed(pol)]
+        logger.info(f"Discovered {len(matching_pols)} matching Catalog Policies on the server.")
+        pol_dir = os.path.join(auto_root, "policies")
+        os.makedirs(pol_dir, exist_ok=True)
+        for pol in matching_pols:
+            name = pol.get("name")
+            try:
+                with open(os.path.join(pol_dir, f"{name}.json"), "w", encoding="utf-8") as f:
+                    json.dump(pol, f, indent=4, ensure_ascii=False)
+                logger.info(f"Successfully pulled Catalog Policy '{name}'")
+            except Exception as e:
+                logger.error(f"Failed to save Catalog Policy '{name}': {e}")
+    except Exception as e:
+        logger.error(f"Failed to list Catalog Policies: {e}")
+
+    # 7. Pull Subscriptions
+    try:
+        subs = client.list_subscriptions()
+        matching_subs = [sub for sub in subs if not sub.get("system", False) and sub.get("type") == "RUNNABLE"]
+        logger.info(f"Discovered {len(matching_subs)} matching User Event Broker Subscriptions (RUNNABLE) on the server.")
+        sub_dir = os.path.join(auto_root, "subscriptions")
+        os.makedirs(sub_dir, exist_ok=True)
+        for sub in matching_subs:
+            name = sub.get("name") or sub.get("id")
+            try:
+                with open(os.path.join(sub_dir, f"{name}.json"), "w", encoding="utf-8") as f:
+                    json.dump(sub, f, indent=4, ensure_ascii=False)
+                logger.info(f"Successfully pulled Event Broker Subscription '{name}'")
+            except Exception as e:
+                logger.error(f"Failed to save Event Broker Subscription '{name}': {e}")
+    except Exception as e:
+        logger.error(f"Failed to list Event Broker Subscriptions: {e}")
+
+    # 8. Pull Custom Forms
+    try:
+        items = client.list_catalog_items()
+        form_dir = os.path.join(auto_root, "custom_forms")
+        os.makedirs(form_dir, exist_ok=True)
+        form_count = 0
+        for item in items:
+            proj_id = item.get("projectId")
+            if target_projects and proj_id and not is_project_allowed(proj_id):
+                continue
+                
+            item_id = item.get("id")
+            item_name = item.get("name")
+            item_type = item.get("type", {}).get("id")
+            
+            try:
+                form_data = client.get_custom_form(item_type, item_id)
+                if form_data and form_data.get("status") == "ON":
+                    with open(os.path.join(form_dir, f"{item_name}.json"), "w", encoding="utf-8") as f:
+                        json.dump(form_data, f, indent=4, ensure_ascii=False)
+                    logger.info(f"Successfully pulled Custom Form for '{item_name}'")
+                    form_count += 1
+            except Exception as e:
+                logger.debug(f"Failed to pull form for catalog item '{item_name}': {e}")
+        logger.info(f"Discovered and saved {form_count} Custom Forms.")
+    except Exception as e:
+        logger.error(f"Failed to list catalog items for custom forms: {e}")
+
+def push_all_vra(client, config, root_dir, dry_run=False):
+    """
+    Sync from local repository to vRA server.
+    """
+    logger.info(f"--- Starting Push-All Sync (vRA) (Dry-Run: {dry_run}) ---")
+    
+    auto_root = os.path.join(root_dir, "auto")
+    if not os.path.exists(auto_root):
+        logger.warning(f"No auto directory found at {auto_root}. Skipping vRA push.")
+        return
+        
+    target_projects = config.get("projects", [])
+    
+    projects_by_name = {}
+    if not dry_run:
+        try:
+            projects = client.get_projects()
+            projects_by_name = {p["name"]: p["id"] for p in projects}
+        except Exception as e:
+            logger.error(f"Failed to fetch projects cache: {e}")
+            
+    def resolve_project_id(proj_name):
+        return projects_by_name.get(proj_name, "default-project-id")
+
+    # 1. Sync Blueprints
+    bp_root = os.path.join(auto_root, "blueprints")
+    if os.path.exists(bp_root) and os.path.isdir(bp_root):
+        for bp_name in os.listdir(bp_root):
+            bp_dir = os.path.join(bp_root, bp_name)
+            if not os.path.isdir(bp_dir):
+                continue
+                
+            json_path = os.path.join(bp_dir, "blueprint.json")
+            yaml_path = os.path.join(bp_dir, "blueprint.yaml")
+            if os.path.exists(json_path) and os.path.exists(yaml_path):
+                try:
+                    with open(json_path, "r", encoding="utf-8") as f:
+                        bp_meta = json.load(f)
+                    with open(yaml_path, "r", encoding="utf-8") as f:
+                        yaml_content = f.read()
+                        
+                    proj_name = bp_meta.get("projectName", "global")
+                    if target_projects and proj_name not in target_projects:
+                        continue
+                        
+                    if dry_run:
+                        logger.info(f"[DRY RUN] Would sync blueprint '{bp_name}' (Project: {proj_name})")
+                        continue
+                        
+                    proj_id = resolve_project_id(proj_name)
+                    payload = dict(bp_meta)
+                    payload["content"] = yaml_content
+                    payload["projectId"] = proj_id
+                    
+                    # Check if exists
+                    server_bps = client.list_blueprints()
+                    existing_bp = next((b for b in server_bps if b["name"] == bp_name), None)
+                    
+                    if existing_bp:
+                        logger.info(f"Updating blueprint '{bp_name}'...")
+                        client.update_blueprint(existing_bp["id"], payload)
+                    else:
+                        logger.info(f"Creating blueprint '{bp_name}'...")
+                        client.create_blueprint(payload)
+                        
+                    # Optionally publish version if defined
+                    version = bp_meta.get("latestVersion") or "1.0.0"
+                    try:
+                        client.publish_blueprint_version(existing_bp["id"] if existing_bp else bp_meta.get("id"), version)
+                    except Exception:
+                        pass
+                except Exception as e:
+                    logger.error(f"Failed to push blueprint '{bp_name}': {e}")
+                    
+    # 2. Sync ABX Actions
+    abx_root = os.path.join(auto_root, "abx")
+    if os.path.exists(abx_root) and os.path.isdir(abx_root):
+        for abx_name in os.listdir(abx_root):
+            abx_dir = os.path.join(abx_root, abx_name)
+            if not os.path.isdir(abx_dir):
+                continue
+                
+            init_path = os.path.join(abx_dir, "init.json")
+            script_path = None
+            for file in os.listdir(abx_dir):
+                if file.startswith("source."):
+                    script_path = os.path.join(abx_dir, file)
+                    break
+                    
+            if os.path.exists(init_path) and script_path:
+                try:
+                    with open(init_path, "r", encoding="utf-8") as f:
+                        abx_meta = json.load(f)
+                    with open(script_path, "r", encoding="utf-8") as f:
+                        script_code = f.read()
+                        
+                    proj_name = abx_meta.get("projectName", "global")
+                    if target_projects and proj_name not in target_projects:
+                        continue
+                        
+                    if dry_run:
+                        logger.info(f"[DRY RUN] Would sync ABX Action '{abx_name}' (Project: {proj_name})")
+                        continue
+                        
+                    proj_id = resolve_project_id(proj_name)
+                    payload = dict(abx_meta)
+                    payload["source"] = script_code
+                    payload["projectId"] = proj_id
+                    
+                    # Check if exists
+                    server_acts = client.list_abx_actions()
+                    existing_act = next((a for a in server_acts if a["name"] == abx_name), None)
+                    
+                    if existing_act:
+                        logger.info(f"Updating ABX Action '{abx_name}'...")
+                        client.update_abx_action(existing_act["id"], payload)
+                    else:
+                        logger.info(f"Creating ABX Action '{abx_name}'...")
+                        client.create_abx_action(payload)
+                except Exception as e:
+                    logger.error(f"Failed to push ABX Action '{abx_name}': {e}")
+
+    # Helper for simple flat JSON files push
+    def push_flat_resources(sub_folder, list_func, create_func, update_func, label):
+        folder_path = os.path.join(auto_root, sub_folder)
+        if not os.path.exists(folder_path):
+            return
+            
+        for file in os.listdir(folder_path):
+            if not file.endswith(".json"):
+                continue
+                
+            file_path = os.path.join(folder_path, file)
+            name = os.path.splitext(file)[0]
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    payload = json.load(f)
+                    
+                if target_projects:
+                    if label == "Catalog Policy":
+                        proj_list = payload.get("properties", {}).get("projects", [])
+                        matches_p = False
+                        for p in proj_list:
+                            if p in target_projects or p in [resolve_project_id(x) for x in target_projects]:
+                                matches_p = True
+                                break
+                        if proj_list and not matches_p:
+                            continue
+                            
+                if dry_run:
+                    logger.info(f"[DRY RUN] Would sync {label} '{name}'")
+                    continue
+                    
+                server_items = list_func()
+                existing_item = None
+                for item in server_items:
+                    item_name = item.get("name") or item.get("displayName")
+                    if item_name == name:
+                        existing_item = item
+                        break
+                        
+                if existing_item:
+                    logger.info(f"Updating {label} '{name}'...")
+                    update_func(existing_item["id"], payload)
+                else:
+                    logger.info(f"Creating {label} '{name}'...")
+                    create_func(payload)
+            except Exception as e:
+                logger.error(f"Failed to push {label} '{name}': {e}")
+
+    if not dry_run:
+        push_flat_resources("custom_resources", client.list_custom_resources, client.create_custom_resource, client.update_custom_resource, "Custom Resource")
+        push_flat_resources("resource_actions", client.list_resource_actions, client.create_resource_action, client.update_resource_action, "Resource Action")
+        push_flat_resources("catalog_sources", client.list_catalog_sources, client.create_catalog_source, client.update_catalog_source, "Catalog Source")
+        push_flat_resources("policies", client.list_policies, client.create_policy, client.update_policy, "Catalog Policy")
+        push_flat_resources("subscriptions", client.list_subscriptions, client.create_subscription, client.update_subscription, "Event Broker Subscription")
+        
+        # Sync Custom Forms
+        form_folder = os.path.join(auto_root, "custom_forms")
+        if os.path.exists(form_folder) and os.path.isdir(form_folder):
+            for file in os.listdir(form_folder):
+                if not file.endswith(".json"):
+                    continue
+                file_path = os.path.join(form_folder, file)
+                name = os.path.splitext(file)[0]
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        payload = json.load(f)
+                    logger.info(f"Saving Custom Form for '{name}'...")
+                    client.create_or_update_custom_form(payload)
+                except Exception as e:
+                    logger.error(f"Failed to push Custom Form for '{name}': {e}")
+    else:
+        for folder, label in [("custom_resources", "Custom Resource"), 
+                              ("resource_actions", "Resource Action"), 
+                              ("catalog_sources", "Catalog Source"), 
+                              ("policies", "Catalog Policy"), 
+                              ("subscriptions", "Event Broker Subscription")]:
+            folder_path = os.path.join(auto_root, folder)
+            if os.path.exists(folder_path):
+                for file in os.listdir(folder_path):
+                    if file.endswith(".json"):
+                        logger.info(f"[DRY RUN] Would sync {label} '{os.path.splitext(file)[0]}'")
+        
+        # Dry Run for Custom Forms
+        form_folder = os.path.join(auto_root, "custom_forms")
+        if os.path.exists(form_folder) and os.path.isdir(form_folder):
+            for file in os.listdir(form_folder):
+                if file.endswith(".json"):
+                    logger.info(f"[DRY RUN] Would sync Custom Form for '{os.path.splitext(file)[0]}'")
+
+def status_vra(client, config, root_dir):
+    """
+    Compares the state of blueprints, ABX actions, Custom Resources, etc.,
+    between the local Git repository and the remote vRA server.
+    """
+    tag = config.get("gitops_tag")
+    if not tag:
+        logger.error("No 'gitops_tag' configured in config.json. Cannot execute status-vra.")
+        sys.exit(1)
+
+    target_projects = config.get("projects", [])
+    logger.info(f"--- Running Aria Automation GitOps Status Check for tag '{tag}' (Projects filter: {target_projects}) ---")
+    
+    auto_root = os.path.join(root_dir, "auto")
+    
+    # Cache projects
+    try:
+        projects = client.get_projects()
+        projects_by_id = {p["id"]: p for p in projects}
+        projects_by_name = {p["name"]: p["id"] for p in projects}
+    except Exception:
+        projects_by_id = {}
+        projects_by_name = {}
+        
+    target_project_ids = [projects_by_name[name] for name in target_projects if name in projects_by_name]
+    
+    def is_project_allowed(proj_id):
+        if not target_projects:
+            return True
+        return proj_id in target_project_ids
+
+    def is_policy_allowed(policy):
+        if not target_projects:
+            return True
+        proj_id = policy.get("projectId")
+        if proj_id:
+            return is_project_allowed(proj_id)
+            
+        # Check scopeCriteria for matchesRegex/equals
+        scope = policy.get("scopeCriteria", {})
+        exprs = scope.get("matchExpression", [])
+        has_project_filter = False
+        project_matched = False
+        
+        for expr in exprs:
+            if expr.get("key") == "project.name":
+                has_project_filter = True
+                val = expr.get("value", "")
+                op = expr.get("operator", "")
+                
+                # Check match against target projects
+                for p_name in target_projects:
+                    if op == "matchesRegex":
+                        try:
+                            if re.match(val, p_name):
+                                project_matched = True
+                                break
+                        except Exception:
+                            pass
+                    elif op == "equals":
+                        if val == p_name:
+                            project_matched = True
+                            break
+                            
+        if has_project_filter:
+            return project_matched
+            
+        # Fallback to properties.projects list (Legacy/Other Policies)
+        props = policy.get("properties", {})
+        proj_list = props.get("projects", [])
+        if proj_list:
+            for p in proj_list:
+                if p in target_project_ids or projects_by_id.get(p, {}).get("name") in target_projects:
+                    return True
+            return False
+            
+        # If no project constraints are found, it's a global org-level policy
+        return True
+
+    # Gather server items matching tag
+    server_blueprints = []
+    server_abx_actions = []
+    server_crs = []
+    server_ras = []
+    server_css = []
+    server_pols = []
+    server_subs = []
+    server_forms = []
+    
+    try:
+        server_blueprints = [bp for bp in client.list_blueprints() if is_project_allowed(bp.get("projectId"))]
+        server_abx_actions = [act for act in client.list_abx_actions() if is_project_allowed(act.get("projectId"))]
+        server_crs = client.list_custom_resources()
+        server_ras = client.list_resource_actions()
+        
+        server_css_all = client.list_catalog_sources()
+        if target_projects:
+            server_css = [cs for cs in server_css_all if not cs.get("projectId") or is_project_allowed(cs.get("projectId"))]
+        else:
+            server_css = server_css_all
+            
+        server_pols = [pol for pol in client.list_policies() if is_policy_allowed(pol)]
+        server_subs = [sub for sub in client.list_subscriptions() if not sub.get("system", False) and sub.get("type") == "RUNNABLE"]
+        
+        # Gather custom forms from catalog items
+        try:
+            catalog_items = client.list_catalog_items()
+            for item in catalog_items:
+                proj_id = item.get("projectId")
+                if target_projects and proj_id and not is_project_allowed(proj_id):
+                    continue
+                item_id = item.get("id")
+                item_name = item.get("name")
+                item_type = item.get("type", {}).get("id")
+                try:
+                    form_data = client.get_custom_form(item_type, item_id)
+                    if form_data and form_data.get("status") == "ON":
+                        form_data["_catalogItemName"] = item_name
+                        server_forms.append(form_data)
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.error(f"Error gathering custom forms from server: {e}")
+    except Exception as e:
+        logger.error(f"Error listing server assets: {e}")
+
+    # Gather local items
+    local_blueprints = {}
+    local_abx_actions = {}
+    local_crs = {}
+    local_ras = {}
+    local_css = {}
+    local_pols = {}
+    local_subs = {}
+
+    # Local Blueprints
+    bp_root = os.path.join(auto_root, "blueprints")
+    if os.path.exists(bp_root) and os.path.isdir(bp_root):
+        for bp_name in os.listdir(bp_root):
+            bp_dir = os.path.join(bp_root, bp_name)
+            if not os.path.isdir(bp_dir):
+                continue
+            json_path = os.path.join(bp_dir, "blueprint.json")
+            yaml_path = os.path.join(bp_dir, "blueprint.yaml")
+            if os.path.exists(json_path) and os.path.exists(yaml_path):
+                try:
+                    with open(json_path, "r", encoding="utf-8") as f:
+                        meta = json.load(f)
+                    with open(yaml_path, "r", encoding="utf-8") as f:
+                        yaml_content = f.read()
+                    
+                    proj_name = meta.get("projectName", "global")
+                    if not target_projects or proj_name in target_projects:
+                        local_blueprints[bp_name] = {
+                            "meta": meta,
+                            "yaml": yaml_content,
+                            "project": proj_name
+                        }
+                except Exception:
+                    pass
+                    
+    # Local ABX
+    abx_root = os.path.join(auto_root, "abx")
+    if os.path.exists(abx_root) and os.path.isdir(abx_root):
+        for abx_name in os.listdir(abx_root):
+            abx_dir = os.path.join(abx_root, abx_name)
+            if not os.path.isdir(abx_dir):
+                continue
+            init_path = os.path.join(abx_dir, "init.json")
+            script_path = None
+            for file in os.listdir(abx_dir):
+                if file.startswith("source."):
+                    script_path = os.path.join(abx_dir, file)
+                    break
+            if os.path.exists(init_path) and script_path:
+                try:
+                    with open(init_path, "r", encoding="utf-8") as f:
+                        meta = json.load(f)
+                    with open(script_path, "r", encoding="utf-8") as f:
+                        script_code = f.read()
+                    
+                    proj_name = meta.get("projectName", "global")
+                    if not target_projects or proj_name in target_projects:
+                        local_abx_actions[abx_name] = {
+                            "meta": meta,
+                            "code": script_code,
+                            "project": proj_name
+                        }
+                except Exception:
+                    pass
+
+    def load_local_flats(sub_folder):
+        result = {}
+        folder_path = os.path.join(auto_root, sub_folder)
+        if os.path.exists(folder_path):
+            for file in os.listdir(folder_path):
+                if file.endswith(".json"):
+                    name = os.path.splitext(file)[0]
+                    try:
+                        with open(os.path.join(folder_path, file), "r", encoding="utf-8") as f:
+                            payload = json.load(f)
+                            
+                        if sub_folder == "policies" and target_projects:
+                            proj_list = payload.get("properties", {}).get("projects", [])
+                            matches_p = False
+                            for p in proj_list:
+                                if p in target_projects or p in [projects_by_name.get(x) for x in target_projects]:
+                                    matches_p = True
+                                    break
+                            if proj_list and not matches_p:
+                                continue
+                                
+                        result[name] = payload
+                    except Exception:
+                        pass
+        return result
+
+    local_crs = load_local_flats("custom_resources")
+    local_ras = load_local_flats("resource_actions")
+    local_css = load_local_flats("catalog_sources")
+    local_pols = load_local_flats("policies")
+    local_subs = load_local_flats("subscriptions")
+    local_forms = load_local_flats("custom_forms")
+
+    results = {
+        "Blueprint": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "ABX Action": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "Custom Resource": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "Resource Action": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "Catalog Source": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "Catalog Policy": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "Subscription": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "Custom Form": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []}
+    }
+
+    # 1. Blueprints comparison
+    server_bp_names = {b["name"]: b for b in server_blueprints}
+    for bp_name in set(server_bp_names.keys()) | set(local_blueprints.keys()):
+        if bp_name not in local_blueprints:
+            results["Blueprint"]["SERVER_ONLY"].append((bp_name, f"ID: {server_bp_names[bp_name]['id']}"))
+        elif bp_name not in server_bp_names:
+            results["Blueprint"]["LOCAL_ONLY"].append((bp_name, "Local Only"))
+        else:
+            try:
+                full_bp = client.get_blueprint(server_bp_names[bp_name]["id"])
+                server_yaml = (full_bp.get("content") or "").replace("\r\n", "\n").strip() if full_bp else ""
+                local_yaml = local_blueprints[bp_name]["yaml"].replace("\r\n", "\n").strip()
+                if server_yaml != local_yaml:
+                    results["Blueprint"]["MODIFIED"].append((bp_name, "Content Mismatch"))
+                else:
+                    results["Blueprint"]["IN_SYNC"].append((bp_name, "Matching"))
+            except Exception:
+                results["Blueprint"]["MODIFIED"].append((bp_name, "Error comparing"))
+
+    # 2. ABX Actions comparison
+    server_abx_names = {a["name"]: a for a in server_abx_actions}
+    for abx_name in set(server_abx_names.keys()) | set(local_abx_actions.keys()):
+        if abx_name not in local_abx_actions:
+            results["ABX Action"]["SERVER_ONLY"].append((abx_name, f"ID: {server_abx_names[abx_name]['id']}"))
+        elif abx_name not in server_abx_names:
+            results["ABX Action"]["LOCAL_ONLY"].append((abx_name, "Local Only"))
+        else:
+            try:
+                full_srv = server_abx_names[abx_name]
+                server_code = (full_srv.get("source", "") or "").replace("\r\n", "\n").strip()
+                local_code = local_abx_actions[abx_name]["code"].replace("\r\n", "\n").strip()
+                if server_code != local_code:
+                    results["ABX Action"]["MODIFIED"].append((abx_name, "Script Mismatch"))
+                else:
+                    results["ABX Action"]["IN_SYNC"].append((abx_name, "Matching"))
+            except Exception:
+                results["ABX Action"]["MODIFIED"].append((abx_name, "Error comparing"))
+
+    # Flat comparisons helper
+    def compare_flats(label, server_items, local_items):
+        def get_item_name(item):
+            if label == "Custom Form":
+                return item.get("_catalogItemName")
+            elif label in ["Custom Resource", "Resource Action"]:
+                return item.get("displayName") or item.get("name") or item.get("id")
+            else:
+                return item.get("name") or item.get("id")
+            
+        srv_map = {}
+        for item in server_items:
+            name = get_item_name(item)
+            if name:
+                srv_map[name] = item
+                
+        for name in set(srv_map.keys()) | set(local_items.keys()):
+            if name not in local_items:
+                results[label]["SERVER_ONLY"].append((name, f"ID: {srv_map[name]['id']}"))
+            elif name not in srv_map:
+                results[label]["LOCAL_ONLY"].append((name, "Local Only"))
+            else:
+                srv_clean = dict(srv_map[name])
+                loc_clean = dict(local_items[name])
+                
+                for key in ["id", "createdAt", "updatedAt", "links", "orgId", "projectId", "userId", "_catalogItemName"]:
+                    srv_clean.pop(key, None)
+                    loc_clean.pop(key, None)
+                    
+                if json.dumps(srv_clean, sort_keys=True) != json.dumps(loc_clean, sort_keys=True):
+                    results[label]["MODIFIED"].append((name, "Properties Mismatch"))
+                else:
+                    results[label]["IN_SYNC"].append((name, "Matching"))
+
+    compare_flats("Custom Resource", server_crs, local_crs)
+    compare_flats("Resource Action", server_ras, local_ras)
+    compare_flats("Catalog Source", server_css, local_css)
+    compare_flats("Catalog Policy", server_pols, local_pols)
+    compare_flats("Subscription", server_subs, local_subs)
+    compare_flats("Custom Form", server_forms, local_forms)
+
+    # Display results
+    print("\n==================================================")
+    print("             vRA GitOps Status Report             ")
+    print("==================================================")
+
+    for type_name, categories in results.items():
+        total_type = sum(len(items) for items in categories.values())
+        if total_type == 0:
+            continue
+            
+        print(f"\n[+] Type: {type_name}")
+        
+        if categories["IN_SYNC"]:
+            print(f"  - In Sync ({len(categories['IN_SYNC'])} items):")
+            for item in sorted(categories["IN_SYNC"], key=lambda x: x[0]):
+                print(f"    * {item[0]} ({item[1]})")
+                
+        if categories["MODIFIED"]:
+            print(f"  - Modified ({len(categories['MODIFIED'])} items):")
+            for item in sorted(categories["MODIFIED"], key=lambda x: x[0]):
+                print(f"    * \033[93m{item[0]} ({item[1]})\033[0m")
+                
+        if categories["LOCAL_ONLY"]:
+            print(f"  - Local Only ({len(categories['LOCAL_ONLY'])} items):")
+            for item in sorted(categories["LOCAL_ONLY"], key=lambda x: x[0]):
+                print(f"    * \033[92m{item[0]} ({item[1]})\033[0m")
+                
+        if categories["SERVER_ONLY"]:
+            print(f"  - Server Only ({len(categories['SERVER_ONLY'])} items):")
+            for item in sorted(categories["SERVER_ONLY"], key=lambda x: x[0]):
+                print(f"    * \033[96m{item[0]} ({item[1]})\033[0m")
+
+    print("\n==================================================")
+    summary_parts = []
+    for state in ["IN_SYNC", "MODIFIED", "LOCAL_ONLY", "SERVER_ONLY"]:
+        count = sum(len(results[t][state]) for t in results)
+        summary_parts.append(f"{state}: {count}")
+    print("vRA Summary: " + " | ".join(summary_parts))
+    print("==================================================\n")
+
 def main():
     parser = argparse.ArgumentParser(description="VCF Automation & Orchestrator GitOps Sync Tool")
     parser.add_argument("action", choices=["pull-all", "push-all", "status"], help="Sync action to perform")
@@ -1082,12 +1964,19 @@ def main():
         logger.info("Dry-Run mode active.")
         if args.action == "push-all":
             push_all(None, config, root_dir, dry_run=True)
+            push_all_vra(None, config, root_dir, dry_run=True)
         else:
             logger.info("[DRY RUN] Operation verified.")
         return
         
-    # Set up client
-    client = VroClient(
+    # Set up clients
+    vro_client = VroClient(
+        vcf_url=config["vcf_url"],
+        refresh_token=config["refresh_token"],
+        org=config.get("org", "default"),
+        verify_ssl=config.get("verify_ssl", False)
+    )
+    vra_client = VraClient(
         vcf_url=config["vcf_url"],
         refresh_token=config["refresh_token"],
         org=config.get("org", "default"),
@@ -1096,11 +1985,14 @@ def main():
     
     # Execute action
     if args.action == "pull-all":
-        pull_all(client, config, root_dir)
+        pull_all(vro_client, config, root_dir)
+        pull_all_vra(vra_client, config, root_dir)
     elif args.action == "push-all":
-        push_all(client, config, root_dir, dry_run=False, force_bootstrap=args.bootstrap)
+        push_all(vro_client, config, root_dir, dry_run=False, force_bootstrap=args.bootstrap)
+        push_all_vra(vra_client, config, root_dir, dry_run=False)
     elif args.action == "status":
-        status(client, config, root_dir)
+        status(vro_client, config, root_dir)
+        status_vra(vra_client, config, root_dir)
         
 if __name__ == "__main__":
     main()

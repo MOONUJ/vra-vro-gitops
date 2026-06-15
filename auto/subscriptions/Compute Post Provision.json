@@ -1,0 +1,23 @@
+{
+    "id": "sub_1767933722887",
+    "type": "RUNNABLE",
+    "eventTopicId": "compute.provision.post",
+    "name": "Compute Post Provision",
+    "orgId": "2722874a-6ca3-4a92-b115-0b9cd804cdd1",
+    "ownerId": "admin",
+    "subscriberId": "service-account-vro-gateway-serviceaccount",
+    "blocking": true,
+    "description": "GVP from [20260515-113903] to [20260518-113252]",
+    "criteria": "",
+    "constraints": {
+        "projectId": null
+    },
+    "timeout": 0,
+    "broadcast": false,
+    "priority": 10,
+    "disabled": false,
+    "system": false,
+    "contextual": false,
+    "runnableType": "extensibility.vro",
+    "runnableId": "16d01037-7aa8-4a18-8492-ba4098531035"
+}

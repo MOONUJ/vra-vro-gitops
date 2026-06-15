@@ -1,0 +1,18 @@
+# Aria Automation Connection Info
+vra_url           = "https://poscodx-auto.gooddi.lab"
+vra_refresh_token = "YOUR_VRA_REFRESH_TOKEN_HERE"
+vra_insecure      = true
+
+# vCenter Server Connection Info
+vsphere_endpoint  = "vcenter.gooddi.lab"
+vsphere_username  = "administrator@vsphere.local"
+vsphere_password  = "YOUR_VCENTER_PASSWORD_HERE"
+vsphere_dc        = "Datacenter"
+
+# NSX Manager Connection Info
+nsxt_endpoint     = "nsx.gooddi.lab"
+nsxt_username     = "admin"
+nsxt_password     = "YOUR_NSX_PASSWORD_HERE"
+
+# Custom Tag
+environment_tag   = "gvp"

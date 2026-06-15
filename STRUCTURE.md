@@ -1,7 +1,6 @@
 # 저장소 구조 (Repository Structure)
 
-이 저장소는 VMware Aria Automation (vRA) 및 vRealize Orchestrator (vRO)에서 사용하는 스크립트, 메타데이터, 그리고 패키지를 GitOps 방식으로 관리합니다.
-각 디렉토리는 해당 플랫폼의 인벤토리 구조와 Import/Export 경로 규칙을 반영합니다.
+이 저장소는 VMware Aria Automation (vRA) 및 vRealize Orchestrator (vRO)에서 사용하는 인프라 구성, 스크립트, 블루프린트, 그리고 메타데이터를 하이브리드 GitOps 방식으로 관리합니다.
 
 ---
 
@@ -13,29 +12,47 @@ poscodx/
 ├── gitops/                        # GitOps 동기화 스크립트 디렉토리
 │   ├── config.json.template       # 환경설정 템플릿 파일
 │   ├── vro_client.py              # vRO REST API 클라이언트 모듈
-│   └── vcf_gitops.py              # GitOps CLI 실행 프로그램 (pull-all / push-all)
+│   ├── vra_client.py              # vRA REST API 클라이언트 모듈 (신규)
+│   └── vcf_gitops.py              # GitOps CLI 실행 프로그램 (pull-all / push-all / status)
 │
-├── auto/                          # Aria Automation 리소스 (ABX Actions, Templates 등)
-│   ├── project_scope/             # 특정 프로젝트에 속하는 리소스
-│   │   ├── admin/                 # 'admin' 프로젝트
-│   │   │   ├── ABX/               # ABX Actions
-│   │   │   └── Templates/         # Cloud Templates (Blueprint)
-│   │   └── stage/                 # 'stage' 프로젝트
-│   │       ├── ABX/
-│   │       └── Templates/
-│   └── any_project_scope/         # 모든 프로젝트에서 공유하는 리소스
-│       ├── Content_Sources/       # Content Source 설정
-│       └── Custom_Resources/      # Custom Resource 정의
+├── vra/                           # Aria Automation 초기 인프라 레이어 (Terraform)
+│   ├── providers.tf               # vRA Provider 선언 및 인증 연동 설정
+│   ├── variables.tf               # 공통 입력 변수 선언
+│   ├── terraform.tfvars.template  # 사용자 자격 증명 템플릿 파일
+│   ├── cloud_accounts.tf          # vSphere & NSX-T Cloud Accounts 설정
+│   ├── cloud_zones.tf             # Cloud Zones 그룹화 정의
+│   ├── network_profiles.tf        # 서브넷 대역 및 네트워크 정책 정의
+│   ├── storage_profiles.tf        # 데이터스토어 및 스토리지 정책 정의
+│   ├── image_mappings.tf          # OS 템플릿 이미지 프로필 매핑 정의
+│   └── projects.tf                # Projects 바인딩 및 사용자 권한 할당 정의
 │
-└── vro/                           # vRealize Orchestrator 리소스
+├── auto/                          # Aria Automation 셀프서비스 카탈로그 (GitOps)
+│   ├── blueprints/                # Cloud Templates (Blueprint) - 플랫 구조
+│   │   └── {BlueprintName}/
+│   │       ├── blueprint.json     # 블루프린트 메타데이터 및 projectName 매핑
+│   │       └── blueprint.yaml     # 블루프린트 선언적 구성 (YAML)
+│   │
+│   ├── abx/                       # Action-based Extensibility (ABX) Actions - 플랫 구조
+│   │   └── {ActionName}/
+│   │       ├── init.json          # ABX 메타데이터 및 projectName 매핑
+│   │       └── source.py          # ABX 실행 소스코드 (런타임에 따라 .py 또는 .js)
+│   │
+│   ├── custom_forms/              # 카탈로그 아이템에 엮인 사용자정의 양식 (Custom Form) JSON 파일 (.json)
+│   ├── custom_resources/          # Custom Resource 정의 JSON 파일 (.json)
+│   ├── resource_actions/          # Resource Action 정의 JSON 파일 (.json)
+│   ├── catalog_sources/           # 카탈로그 아이템 소스 정의 JSON 파일 (.json)
+│   ├── policies/                  # 권한(Entitlement)/승인(Approval) 정책 JSON 파일 (.json)
+│   └── subscriptions/             # Event Broker 구독 정의 JSON 파일 (.json)
+│
+└── vro/                           # vRealize Orchestrator 오케스트레이션 (Python CLI 동기화)
     ├── packages/                  # 배포 초기화(부트스트랩)용 .package 바이너리 저장 폴더
-    ├── workflows/ (또는 Workflows/) # vRO 내 폴더 경로와 동일한 구조
+    ├── workflows/                 # vRO 내 폴더 경로와 동일한 구조
     │   └── {folder}/
     │       └── {WorkflowName}/
     │           ├── workflow.json  # 워크플로우 기본 정보 (GET /workflows/{id})
     │           ├── content.json   # 워크플로우 전체 스키마 (GET /workflows/{id}/content)
     │           └── workflow-items/ # 스크립트 및 바인딩 추출 폴더
-    │               └── {item_name}/ # 각 노드 아이디(예: item1) 기준
+    │               └── {item_name}/ 
     │                   ├── value.js         # 실제 Javascript 소스코드
     │                   ├── in-binding.json  # 입력 매개변수 바인딩 설정
     │                   └── out-binding.json # 출력 매개변수 바인딩 설정
@@ -44,53 +61,25 @@ poscodx/
     │       └── {ActionName}/
     │           ├── action.json    # 액션 메타데이터 (FQN, 버전 등)
     │           └── script.js      # 액션 Javascript 소스코드
-    ├── configurations/            # Configuration Elements
-    │   └── {category}/
-    │       └── {ConfigName}.json  # 환경설정 속성(Attributes) 정의 JSON 파일
-    └── resources/                 # Resource Elements
-        └── {category}/
-            └── {ResourceName}/
-                ├── resource.json  # 리소스 메타데이터 (ID, Mime-Type 등)
-                └── {ResourceName} # 리소스 실제 본문 파일 (바이너리 또는 스크립트)
+    ├── configurations/            # Configuration Elements Attributes JSON
+    └── resources/                 # Resource Elements Metadata & Binary
 ```
 
 ---
 
 ## 파일 규칙 및 동기화 매핑 규칙
 
-### 1. vRO Workflows
-각 워크플로우는 독립된 디렉토리로 관리하며, 디렉토리명은 vRO 내 워크플로우 이름과 동일합니다.
-- **workflow.json**: vRO에 등록된 워크플로우의 고유 ID(UUID), 이름, 버전 등을 보관합니다.
-- **content.json**: 워크플로우의 전체 XML/JSON 스키마 데이터입니다.
-- **workflow-items/{item_name}/**: `content.json` 내의 스크립트 코드나 바인딩 정보가 존재하는 노드(예: `item1`)들만 자동으로 추출하여 관리하기 편한 개별 텍스트 파일로 저장합니다. 
-  - `value.js`에 작성한 코드는 `push-all` 실행 시 `content.json`의 해당 아이템 스키마에 자동으로 결합(Assembly)되어 vRO 서버로 전송됩니다.
+### 1. vRA Blueprints (Cloud Templates)
+- **blueprint.json**: 블루프린트의 ID, 설명, 태그, 버전 등의 메타데이터를 저장합니다.
+- **blueprint.yaml**: 블루프린트의 본문 디자인 템플릿(YAML) 파일입니다. 로컬 수정 시 `push-all` 실행 시 서버에 반영되고 새로운 릴리즈 버전이 자동 생성됩니다.
 
-### 2. vRO Actions
-각 액션은 지정된 모듈 디렉토리 하위에 액션명으로 관리됩니다.
-- **action.json**: FQN(Fully Qualified Name), 버전, ID 등의 메타데이터를 저장합니다. 소스코드 노이즈를 최소화하기 위해 스크립트 본문 필드는 비워둡니다.
-- **script.js**: 액션의 실행 로직인 실제 Javascript 코드입니다. `push-all` 시 `action.json`에 병합되어 반영됩니다.
+### 2. vRA ABX Actions
+- **init.json**: 실행 런타임, 진입점 함수명, 기본 입력 매개변수 정의 메타데이터를 저장합니다.
+- **source.py / source.js**: 실제 실행 스크립트 소스코드 파일입니다. `init.json`에 선언된 런타임 속성에 따라 알맞은 확장자로 자동 생성/동기화됩니다.
 
-### 3. vRO Configurations
-환경설정 요소들은 카테고리 디렉토리 내에 개별 JSON 파일로 저장됩니다.
-- **{ConfigName}.json**: 고유 ID, 이름, 버전 및 구성 속성(Attributes) 값들의 배열을 깔끔한 JSON 포맷으로 저장합니다. `push-all` 시Attributes 데이터를 서버에 덮어씁니다.
+### 3. vRA 공통 구성 요소 (Flat JSON)
+Custom Resources, Resource Actions, Catalog Sources, Policies, Subscriptions는 독립적인 JSON 포맷으로 저장됩니다.
+- 상태 대조(`status`) 및 동기화(`push-all`) 시 transient(휘발성) ID나 타임스탬프 필드를 제외한 실제 구성 속성들만 노멀라이즈 비교하여 변경 사항을 감지합니다.
 
-### 4. vRO Resources
-리소스 요소들은 파일명과 동일한 이름의 폴더 내에서 관리됩니다.
-- **resource.json**: 고유 ID, 이름, 버전, MIME 타입, 설명(Description) 등을 저장합니다.
-- **{ResourceName}**: 쉘 스크립트, 바이너리, 설정 파일 등의 실제 리소스 본문 파일입니다.
-
-### 5. ABX Action (Aria Automation)
-각 ABX Action은 독립된 디렉토리로 관리하며, 디렉토리명은 Action 이름과 동일합니다.
-```
-auto/project_scope/{project}/ABX/{ActionName}/
-├── init.json     # Action 메타데이터 (프로젝트명, 런타임, 기본입력 등)
-└── source.py     # Action 핸들러 코드 (python 런타임 기준)
-```
-
----
-
-## 네이밍 규칙
-
-- **기능 prefix**: `Custom.{기능명}` — 자체 개발 리소스임을 구분 (예: `Custom.VPC.create`)
-- **폴더명**: vRO 내 실제 폴더 경로와 동일하게 유지 (예: `GVP/Task`)
-- **프로젝트 디렉토리**: vRA 프로젝트명과 동일하게 소문자 사용
+### 4. vRO 리소스 규칙
+- 이전 규칙과 동일하게 워크플로우 내 JS 스크립트(workflow-items), 액션 모듈 스크립트, configurations 속성, 그리고 리소스 바이너리들이 분리 동기화됩니다.

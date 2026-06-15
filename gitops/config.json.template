@@ -4,6 +4,7 @@
   "refresh_token": "YOUR_REFRESH_TOKEN",
   "verify_ssl": false,
   "gitops_tag": "gvp",
+  "projects": ["admin"],
   "package": {
     "name": "com.gvp.poscodx",
     "local_path": "vro/packages/com.gvp.poscodx.package"
