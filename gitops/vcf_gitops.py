@@ -751,9 +751,325 @@ def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
         except Exception as e:
             logger.error(f"Failed to push resource {res_name} (ID: {res_id}): {e}")
 
+def status(client, config, root_dir):
+    """
+    Compares the state of workflows, actions, configurations, and resources
+    between the local Git repository and the remote vRO orchestrator.
+    """
+    tag = config.get("gitops_tag")
+    if not tag:
+        logger.error("No 'gitops_tag' configured in config.json. Cannot execute status.")
+        sys.exit(1)
+
+    logger.info(f"--- Running GitOps Status Check for tag '{tag}' ---")
+
+    # 1. Discover server resources by tag
+    try:
+        server_workflows = client.find_resources_by_tag("Workflow", tag)
+    except Exception as e:
+        logger.error(f"Failed to fetch workflows from server: {e}")
+        server_workflows = []
+
+    try:
+        server_actions = client.find_resources_by_tag("Action", tag)
+    except Exception as e:
+        logger.error(f"Failed to fetch actions from server: {e}")
+        server_actions = []
+
+    try:
+        server_configs = client.find_resources_by_tag("ConfigurationElement", tag)
+    except Exception as e:
+        logger.error(f"Failed to fetch configurations from server: {e}")
+        server_configs = []
+
+    try:
+        server_resources = client.find_resources_by_tag("ResourceElement", tag)
+    except Exception as e:
+        logger.error(f"Failed to fetch resources from server: {e}")
+        server_resources = []
+
+    # Map server assets by ID
+    server_wf_map = {wf["id"]: wf for wf in server_workflows}
+    server_act_map = {act["id"]: act for act in server_actions}
+    server_cfg_map = {cfg["id"]: cfg for cfg in server_configs}
+    server_res_map = {res["id"]: res for res in server_resources}
+
+    # 2. Discover local resources
+    # Workflows
+    local_wf_dirs = get_workflow_dirs(root_dir)
+    local_wf_map = {}
+    for wf_dir in local_wf_dirs:
+        try:
+            with open(os.path.join(wf_dir, "workflow.json"), "r", encoding="utf-8") as f:
+                wf_meta = json.load(f)
+            wf_id = wf_meta.get("id")
+            if wf_id:
+                local_wf_map[wf_id] = {
+                    "name": wf_meta.get("workflowName", wf_meta.get("name")),
+                    "version": wf_meta.get("version", "0.0.0"),
+                    "meta": wf_meta,
+                    "dir": wf_dir
+                }
+        except Exception:
+            pass
+
+    # Actions
+    local_act_dirs = get_action_dirs(root_dir)
+    local_act_map = {}
+    for act_dir in local_act_dirs:
+        try:
+            with open(os.path.join(act_dir, "action.json"), "r", encoding="utf-8") as f:
+                act_meta = json.load(f)
+            act_id = act_meta.get("id")
+            if act_id:
+                local_act_map[act_id] = {
+                    "name": act_meta.get("name"),
+                    "version": act_meta.get("version", "0.0.0"),
+                    "meta": act_meta,
+                    "dir": act_dir
+                }
+        except Exception:
+            pass
+
+    # Configurations
+    local_cfg_files = get_local_configurations(root_dir)
+    local_cfg_map = {}
+    for cfg_file in local_cfg_files:
+        try:
+            with open(cfg_file, "r", encoding="utf-8") as f:
+                cfg_json = json.load(f)
+            cfg_id = cfg_json.get("id")
+            if cfg_id:
+                local_cfg_map[cfg_id] = {
+                    "name": cfg_json.get("name"),
+                    "version": cfg_json.get("version", "0.0.0"),
+                    "json": cfg_json,
+                    "file": cfg_file
+                }
+        except Exception:
+            pass
+
+    # Resources
+    local_res_dirs = get_local_resources(root_dir)
+    local_res_map = {}
+    for res_dir in local_res_dirs:
+        try:
+            with open(os.path.join(res_dir, "resource.json"), "r", encoding="utf-8") as f:
+                res_meta = json.load(f)
+            res_id = res_meta.get("id")
+            if res_id:
+                local_res_map[res_id] = {
+                    "name": res_meta.get("name"),
+                    "version": res_meta.get("version", "0.0.0"),
+                    "meta": res_meta,
+                    "dir": res_dir
+                }
+        except Exception:
+            pass
+
+    # 3. Compare and categorize
+    results = {
+        "Workflow": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "Action": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "ConfigurationElement": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []},
+        "ResourceElement": {"IN_SYNC": [], "MODIFIED": [], "LOCAL_ONLY": [], "SERVER_ONLY": []}
+    }
+
+    # Workflow comparison
+    all_wf_ids = set(server_wf_map.keys()) | set(local_wf_map.keys())
+    for wf_id in all_wf_ids:
+        if wf_id not in local_wf_map:
+            results["Workflow"]["SERVER_ONLY"].append((wf_id, server_wf_map[wf_id]["name"]))
+        elif wf_id not in server_wf_map:
+            results["Workflow"]["LOCAL_ONLY"].append((wf_id, local_wf_map[wf_id]["name"]))
+        else:
+            srv_ver = server_wf_map[wf_id].get("version", "0.0.0")
+            loc_ver = local_wf_map[wf_id]["version"]
+            modified = (srv_ver != loc_ver)
+            
+            if not modified:
+                try:
+                    server_content = client.get_workflow_content(wf_id)
+                    local_content = assemble_workflow_content(local_wf_map[wf_id]["dir"])
+                    
+                    srv_items = {item.get("name"): item.get("script", {}).get("value", "") for item in server_content.get("workflow-item", []) if item.get("name")}
+                    loc_items = {item.get("name"): item.get("script", {}).get("value", "") for item in local_content.get("workflow-item", []) if item.get("name")}
+                    
+                    for name, srv_val in srv_items.items():
+                        loc_val = loc_items.get(name, "")
+                        srv_clean = (srv_val or "").replace("\r\n", "\n").strip()
+                        loc_clean = (loc_val or "").replace("\r\n", "\n").strip()
+                        if srv_clean != loc_clean:
+                            modified = True
+                            break
+                except Exception:
+                    modified = True
+            
+            if modified:
+                results["Workflow"]["MODIFIED"].append((wf_id, local_wf_map[wf_id]["name"]))
+            else:
+                results["Workflow"]["IN_SYNC"].append((wf_id, local_wf_map[wf_id]["name"]))
+
+    # Action comparison
+    all_act_ids = set(server_act_map.keys()) | set(local_act_map.keys())
+    for act_id in all_act_ids:
+        if act_id not in local_act_map:
+            results["Action"]["SERVER_ONLY"].append((act_id, server_act_map[act_id]["name"]))
+        elif act_id not in server_act_map:
+            results["Action"]["LOCAL_ONLY"].append((act_id, local_act_map[act_id]["name"]))
+        else:
+            srv_ver = server_act_map[act_id].get("version", "0.0.0")
+            loc_ver = local_act_map[act_id]["version"]
+            modified = (srv_ver != loc_ver)
+            
+            if not modified:
+                try:
+                    srv_act = client.get_action(act_id)
+                    srv_code = (srv_act.get("script", "") or "").replace("\r\n", "\n").strip()
+                    with open(os.path.join(local_act_map[act_id]["dir"], "script.js"), "r", encoding="utf-8") as sf:
+                        loc_code = sf.read().replace("\r\n", "\n").strip()
+                    if srv_code != loc_code:
+                        modified = True
+                except Exception:
+                    modified = True
+            
+            if modified:
+                results["Action"]["MODIFIED"].append((act_id, local_act_map[act_id]["name"]))
+            else:
+                results["Action"]["IN_SYNC"].append((act_id, local_act_map[act_id]["name"]))
+
+    # Configuration comparison
+    all_cfg_ids = set(server_cfg_map.keys()) | set(local_cfg_map.keys())
+    for cfg_id in all_cfg_ids:
+        if cfg_id not in local_cfg_map:
+            results["ConfigurationElement"]["SERVER_ONLY"].append((cfg_id, server_cfg_map[cfg_id]["name"]))
+        elif cfg_id not in server_cfg_map:
+            results["ConfigurationElement"]["LOCAL_ONLY"].append((cfg_id, local_cfg_map[cfg_id]["name"]))
+        else:
+            srv_ver = server_cfg_map[cfg_id].get("version", "0.0.0")
+            loc_ver = local_cfg_map[cfg_id]["version"]
+            modified = (srv_ver != loc_ver)
+            
+            if not modified:
+                try:
+                    srv_cfg = client.get_configuration(cfg_id)
+                    srv_attrs = {}
+                    for attr in srv_cfg.get("attributes", []):
+                        name = attr.get("name")
+                        if name:
+                            val = attr.get("value")
+                            is_plain = False
+                            if isinstance(val, dict) and "secure-string" in val:
+                                is_plain = val["secure-string"].get("isPlainText", False)
+                            
+                            if attr.get("type") == "SecureString" and not is_plain:
+                                srv_attrs[name] = "__SECURE_STRING_IGNORED__"
+                            else:
+                                srv_attrs[name] = val
+
+                    loc_attrs = {}
+                    for attr in local_cfg_map[cfg_id]["json"].get("attributes", []):
+                        name = attr.get("name")
+                        if name:
+                            val = attr.get("value")
+                            is_plain = False
+                            if isinstance(val, dict) and "secure-string" in val:
+                                is_plain = val["secure-string"].get("isPlainText", False)
+                            
+                            if attr.get("type") == "SecureString" and not is_plain:
+                                loc_attrs[name] = "__SECURE_STRING_IGNORED__"
+                            else:
+                                loc_attrs[name] = val
+
+                    if srv_attrs != loc_attrs:
+                        modified = True
+                except Exception:
+                    modified = True
+            
+            if modified:
+                results["ConfigurationElement"]["MODIFIED"].append((cfg_id, local_cfg_map[cfg_id]["name"]))
+            else:
+                results["ConfigurationElement"]["IN_SYNC"].append((cfg_id, local_cfg_map[cfg_id]["name"]))
+
+    # Resource comparison
+    all_res_ids = set(server_res_map.keys()) | set(local_res_map.keys())
+    for res_id in all_res_ids:
+        if res_id not in local_res_map:
+            results["ResourceElement"]["SERVER_ONLY"].append((res_id, server_res_map[res_id]["name"]))
+        elif res_id not in server_res_map:
+            results["ResourceElement"]["LOCAL_ONLY"].append((res_id, local_res_map[res_id]["name"]))
+        else:
+            srv_ver = server_res_map[res_id].get("version", "0.0.0")
+            loc_ver = local_res_map[res_id]["version"]
+            modified = (srv_ver != loc_ver)
+            
+            if not modified:
+                try:
+                    srv_res = client.get_resource(res_id)
+                    mime_type = srv_res.get("mime-type", "application/octet-stream")
+                    srv_content = client.get_resource_content(res_id, mime_type)
+                    
+                    local_file = os.path.join(local_res_map[res_id]["dir"], local_res_map[res_id]["name"])
+                    with open(local_file, "rb") as lf:
+                        loc_content = lf.read()
+                        
+                    if srv_content != loc_content:
+                        modified = True
+                except Exception:
+                    modified = True
+            
+            if modified:
+                results["ResourceElement"]["MODIFIED"].append((res_id, local_res_map[res_id]["name"]))
+            else:
+                results["ResourceElement"]["IN_SYNC"].append((res_id, local_res_map[res_id]["name"]))
+
+    # 4. Display results
+    print("\n==================================================")
+    print("             vRO GitOps Status Report             ")
+    print("==================================================")
+
+    for type_name, categories in results.items():
+        total_type = sum(len(items) for items in categories.values())
+        if total_type == 0:
+            continue
+            
+        print(f"\n[+] Type: {type_name}")
+        
+        # In Sync
+        if categories["IN_SYNC"]:
+            print(f"  - In Sync ({len(categories['IN_SYNC'])} items):")
+            for item in sorted(categories["IN_SYNC"], key=lambda x: x[1]):
+                print(f"    * {item[1]} (ID: {item[0]})")
+                
+        # Modified
+        if categories["MODIFIED"]:
+            print(f"  - Modified ({len(categories['MODIFIED'])} items):")
+            for item in sorted(categories["MODIFIED"], key=lambda x: x[1]):
+                print(f"    * \033[93m{item[1]} (ID: {item[0]})\033[0m") # Yellow output
+                
+        # Local Only
+        if categories["LOCAL_ONLY"]:
+            print(f"  - Local Only ({len(categories['LOCAL_ONLY'])} items):")
+            for item in sorted(categories["LOCAL_ONLY"], key=lambda x: x[1]):
+                print(f"    * \033[92m{item[1]} (ID: {item[0]})\033[0m") # Green output
+                
+        # Server Only
+        if categories["SERVER_ONLY"]:
+            print(f"  - Server Only ({len(categories['SERVER_ONLY'])} items):")
+            for item in sorted(categories["SERVER_ONLY"], key=lambda x: x[1]):
+                print(f"    * \033[96m{item[1]} (ID: {item[0]})\033[0m") # Cyan output
+
+    print("\n==================================================")
+    summary_parts = []
+    for state in ["IN_SYNC", "MODIFIED", "LOCAL_ONLY", "SERVER_ONLY"]:
+        count = sum(len(results[t][state]) for t in results)
+        summary_parts.append(f"{state}: {count}")
+    print("Summary: " + " | ".join(summary_parts))
+    print("==================================================\n")
+
 def main():
     parser = argparse.ArgumentParser(description="VCF Automation & Orchestrator GitOps Sync Tool")
-    parser.add_argument("action", choices=["pull-all", "push-all"], help="Sync action to perform")
+    parser.add_argument("action", choices=["pull-all", "push-all", "status"], help="Sync action to perform")
     parser.add_argument("--dry-run", action="store_true", help="Validates files and configurations without calling server APIs")
     parser.add_argument("--bootstrap", action="store_true", help="Force imports the package file before applying code changes")
     
@@ -767,7 +1083,7 @@ def main():
         if args.action == "push-all":
             push_all(None, config, root_dir, dry_run=True)
         else:
-            logger.info("[DRY RUN] Pull operation verified.")
+            logger.info("[DRY RUN] Operation verified.")
         return
         
     # Set up client
@@ -783,6 +1099,8 @@ def main():
         pull_all(client, config, root_dir)
     elif args.action == "push-all":
         push_all(client, config, root_dir, dry_run=False, force_bootstrap=args.bootstrap)
+    elif args.action == "status":
+        status(client, config, root_dir)
         
 if __name__ == "__main__":
     main()

@@ -243,7 +243,8 @@ class VroClient:
                                 "name": obj_name,
                                 "type": "Action",
                                 "href": href,
-                                "fqn": fqn
+                                "fqn": fqn,
+                                "version": attrs.get("version", "0.0.0")
                             })
             return results
         else:
@@ -284,7 +285,8 @@ class VroClient:
                             "id": obj_id,
                             "name": obj_name,
                             "type": resource_type,
-                            "href": href
+                            "href": href,
+                            "version": attrs.get("version", "0.0.0")
                         })
             return results
 
