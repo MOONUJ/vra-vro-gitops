@@ -74,6 +74,12 @@ python3 gitops/vcf_gitops.py pull-all
 python3 gitops/vcf_gitops.py push-all
 ```
 
+#### 📊 상태 비교 (Status)
+서버와 로컬 Git 저장소의 소스코드 및 구성을 비교하여 변경 리포트(In Sync, Modified, Local Only, Server Only)를 확인합니다:
+```bash
+python3 gitops/vcf_gitops.py status
+```
+
 #### 🔄 강제 패키지 임포트 후 내보내기 (Bootstrap)
 임포트 프로세스를 강제하여 패키지를 덮어쓴 뒤 소스코드를 적용하려는 경우 `--bootstrap` 플래그를 추가합니다:
 ```bash
@@ -90,7 +96,8 @@ python3 gitops/vcf_gitops.py --dry-run push-all
 
 ## 🔄 권장 개발 워크플로우 (GitOps Workflow)
 
-1. **로컬 수정**: 각 자원 파일(워크플로우 JS, 액션 JS, 구성 요소 JSON, 리소스 본문 파일 등)에서 수정을 진행합니다.
-2. **모의 검증**: `python3 gitops/vcf_gitops.py --dry-run push-all`을 실행하여 빌드 에러 및 변경 대상을 검증합니다.
-3. **서버 배포**: `python3 gitops/vcf_gitops.py push-all`을 통해 실시간 vRO 서버 배포 및 동작을 확인합니다.
-4. **Git 커밋**: 작업 완료 후 수정한 코드 및 설정 파일(`.js`, `.json` 등)과 업데이트된 `.package` 바이너리를 Git에 스테이징하여 커밋 및 푸시합니다.
+1. **상태 확인**: `python3 gitops/vcf_gitops.py status` 명령을 실행하여 로컬과 서버의 변경 차이를 먼저 확인합니다.
+2. **로컬 수정**: 각 자원 파일(워크플로우 JS, 액션 JS, 구성 요소 JSON, 리소스 본문 파일 등)에서 수정을 진행합니다.
+3. **모의 검증**: `python3 gitops/vcf_gitops.py --dry-run push-all`을 실행하여 빌드 에러 및 변경 대상을 검증합니다.
+4. **서버 배포**: `python3 gitops/vcf_gitops.py push-all`을 통해 실시간 vRO 서버 배포 및 동작을 확인합니다.
+5. **Git 커밋**: 작업 완료 후 수정한 코드 및 설정 파일(`.js`, `.json` 등)과 업데이트된 `.package` 바이너리를 Git에 스테이징하여 커밋 및 푸시합니다.
