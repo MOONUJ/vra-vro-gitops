@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/bb776a23-5173-4912-8d50-849ed4462066/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.prj/deleteK8sZone/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/bb776a23-5173-4912-8d50-849ed4462066/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/bb776a23-5173-4912-8d50-849ed4462066/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "bb776a23-5173-4912-8d50-849ed4462066",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "projectId"
+        }
+    ],
+    "output-type": "Array/Any",
+    "name": "deleteK8sZone",
+    "module": "com.gvp.bp.prj",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.prj/deleteK8sZone",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

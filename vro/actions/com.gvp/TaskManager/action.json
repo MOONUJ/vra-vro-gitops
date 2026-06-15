@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/a86d8dc3-13a0-4bf3-b116-068bf9a2e87b/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp/TaskManager/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/a86d8dc3-13a0-4bf3-b116-068bf9a2e87b/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/a86d8dc3-13a0-4bf3-b116-068bf9a2e87b/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "a86d8dc3-13a0-4bf3-b116-068bf9a2e87b",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "workflowId"
+        }
+    ],
+    "output-type": "Properties",
+    "name": "TaskManager",
+    "module": "com.gvp",
+    "version": "0.0.1",
+    "fqn": "com.gvp/TaskManager",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

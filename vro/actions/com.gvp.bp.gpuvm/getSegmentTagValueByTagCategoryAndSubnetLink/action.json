@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/d3c11125-61dc-4ed5-822f-7209e23a6ee6/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getSegmentTagValueByTagCategoryAndSubnetLink/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/d3c11125-61dc-4ed5-822f-7209e23a6ee6/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/d3c11125-61dc-4ed5-822f-7209e23a6ee6/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "d3c11125-61dc-4ed5-822f-7209e23a6ee6",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "subnetLink"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "category"
+        }
+    ],
+    "output-type": "string",
+    "name": "getSegmentTagValueByTagCategoryAndSubnetLink",
+    "module": "com.gvp.bp.gpuvm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.gpuvm/getSegmentTagValueByTagCategoryAndSubnetLink",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

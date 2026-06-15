@@ -1,0 +1,74 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/inventory/System/Workflows/GVP/Action/Compute/",
+                "rel": "up"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/executions/",
+                "rel": "executions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/presentation/",
+                "rel": "presentation"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/tasks/",
+                "rel": "tasks"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/icon/",
+                "rel": "icon"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/schema/",
+                "rel": "schema"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/content/",
+                "rel": "content"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/interactions/",
+                "rel": "interactions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/852a12dd-2594-456d-b074-b37ad83a8032/validate/",
+                "rel": "validate"
+            }
+        ]
+    },
+    "id": "852a12dd-2594-456d-b074-b37ad83a8032",
+    "customized-icon": false,
+    "name": "VM 디스크 확장",
+    "version": "0.0.0",
+    "category-id": "469280199e38cae0019e38e915500d1a",
+    "input-parameters": [
+        {
+            "type": "string",
+            "name": "_metadata_main_catalog"
+        },
+        {
+            "type": "string",
+            "name": "_metadata_catalog"
+        },
+        {
+            "type": "string",
+            "name": "resourceId"
+        },
+        {
+            "type": "string",
+            "name": "requestMessage"
+        },
+        {
+            "type": "Array/CompositeType(name:string,size:number,bootDisk:boolean):diskInfo",
+            "name": "diskProperties"
+        }
+    ]
+}

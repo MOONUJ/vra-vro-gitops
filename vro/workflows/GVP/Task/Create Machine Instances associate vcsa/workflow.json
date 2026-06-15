@@ -1,0 +1,90 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/inventory/System/Workflows/GVP/Task/",
+                "rel": "up"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/executions/",
+                "rel": "executions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/presentation/",
+                "rel": "presentation"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/tasks/",
+                "rel": "tasks"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/icon/",
+                "rel": "icon"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/schema/",
+                "rel": "schema"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/content/",
+                "rel": "content"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/interactions/",
+                "rel": "interactions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/c848ba91-3731-4fcf-a120-a787248adcc6/validate/",
+                "rel": "validate"
+            }
+        ]
+    },
+    "id": "c848ba91-3731-4fcf-a120-a787248adcc6",
+    "customized-icon": false,
+    "name": "Create Machine Instances associate vcsa",
+    "version": "0.0.0",
+    "category-id": "469280199e38cae0019e38e9176f0d5f",
+    "input-parameters": [
+        {
+            "type": "string",
+            "name": "name"
+        },
+        {
+            "type": "number",
+            "name": "cpu"
+        },
+        {
+            "type": "number",
+            "name": "memory"
+        },
+        {
+            "type": "string",
+            "name": "gpuModel"
+        },
+        {
+            "type": "string",
+            "name": "gpuSize"
+        },
+        {
+            "type": "string",
+            "name": "gpuProfile"
+        },
+        {
+            "type": "string",
+            "name": "vcsa"
+        },
+        {
+            "type": "Array/string",
+            "name": "cluster"
+        },
+        {
+            "type": "number",
+            "name": "deviceCount"
+        }
+    ]
+}

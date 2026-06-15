@@ -1,0 +1,58 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/inventory/System/Workflows/GVP/Subscriptions/Compute/",
+                "rel": "up"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/executions/",
+                "rel": "executions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/presentation/",
+                "rel": "presentation"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/tasks/",
+                "rel": "tasks"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/icon/",
+                "rel": "icon"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/schema/",
+                "rel": "schema"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/content/",
+                "rel": "content"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/interactions/",
+                "rel": "interactions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a/validate/",
+                "rel": "validate"
+            }
+        ]
+    },
+    "id": "e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a",
+    "customized-icon": false,
+    "name": "Compute Removal",
+    "version": "0.0.0",
+    "category-id": "469280199e38cae0019e38e9159d0d21",
+    "input-parameters": [
+        {
+            "type": "Properties",
+            "name": "inputProperties"
+        }
+    ]
+}

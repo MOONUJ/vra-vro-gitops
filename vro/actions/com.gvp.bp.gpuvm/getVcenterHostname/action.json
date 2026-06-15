@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/cf3c7edc-7457-4a9a-a427-33f2a1186df3/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getVcenterHostname/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/cf3c7edc-7457-4a9a-a427-33f2a1186df3/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/cf3c7edc-7457-4a9a-a427-33f2a1186df3/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "cf3c7edc-7457-4a9a-a427-33f2a1186df3",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "cloudZoneLink"
+        }
+    ],
+    "output-type": "string",
+    "name": "getVcenterHostname",
+    "module": "com.gvp.bp.gpuvm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.gpuvm/getVcenterHostname",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

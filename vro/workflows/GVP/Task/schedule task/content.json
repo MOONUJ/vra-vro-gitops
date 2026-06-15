@@ -1,0 +1,50 @@
+{
+    "display-name": "schedule task",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {},
+    "output": {},
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "out-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 320.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "System.log(\"start schedule task\")",
+                "encoded": false
+            },
+            "in-binding": {},
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 60.0,
+                "x": 170.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "2a94e0f2-9f0c-4830-9ebe-c604e93dc284",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

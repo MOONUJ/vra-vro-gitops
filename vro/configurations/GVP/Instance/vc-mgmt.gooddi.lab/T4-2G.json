@@ -1,0 +1,76 @@
+{
+    "id": "9c4cbfac-e2c4-484f-ac60-8a1ae18d28b2",
+    "name": "T4-2G",
+    "version": "0.0.0",
+    "attributes": [
+        {
+            "value": {
+                "number": {
+                    "value": 2.0
+                }
+            },
+            "type": "number",
+            "name": "cpu"
+        },
+        {
+            "value": {
+                "number": {
+                    "value": 4.0
+                }
+            },
+            "type": "number",
+            "name": "memory"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "T4"
+                }
+            },
+            "type": "string",
+            "name": "gpuModel"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "2"
+                }
+            },
+            "type": "string",
+            "name": "gpuSize"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "grid_t4-2q"
+                }
+            },
+            "type": "string",
+            "name": "gpuProfile"
+        },
+        {
+            "value": {
+                "number": {
+                    "value": 1.0
+                }
+            },
+            "type": "number",
+            "name": "deviceCount"
+        },
+        {
+            "value": {
+                "array": {
+                    "elements": [
+                        {
+                            "string": {
+                                "value": "dtx-mgmt-cl01"
+                            }
+                        }
+                    ]
+                }
+            },
+            "type": "Array/string",
+            "name": "cluster"
+        }
+    ]
+}

@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/fd974c93-58c3-4dc5-addf-3b373e574764/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm.action/getGpuMachinesByProjectId/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/fd974c93-58c3-4dc5-addf-3b373e574764/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/fd974c93-58c3-4dc5-addf-3b373e574764/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "fd974c93-58c3-4dc5-addf-3b373e574764",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "projectId"
+        }
+    ],
+    "output-type": "Array/Properties",
+    "name": "getGpuMachinesByProjectId",
+    "module": "com.gvp.bp.vm.action",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm.action/getGpuMachinesByProjectId",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

@@ -1,0 +1,14 @@
+{
+    "bind": [
+        {
+            "name": "resourceId",
+            "type": "string",
+            "export-name": "resourceId"
+        },
+        {
+            "name": "note",
+            "type": "string",
+            "export-name": "note"
+        }
+    ]
+}

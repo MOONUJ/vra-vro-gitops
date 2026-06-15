@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/2dabf716-9d1f-409e-a121-e510ad92e7cc/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.task/apitest/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/2dabf716-9d1f-409e-a121-e510ad92e7cc/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/2dabf716-9d1f-409e-a121-e510ad92e7cc/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "2dabf716-9d1f-409e-a121-e510ad92e7cc",
+    "output-type": "Properties",
+    "name": "apitest",
+    "module": "com.gvp.bp.task",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.task/apitest",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

@@ -1,0 +1,9 @@
+{
+    "bind": [
+        {
+            "name": "output",
+            "type": "Array/Properties",
+            "export-name": "output"
+        }
+    ]
+}

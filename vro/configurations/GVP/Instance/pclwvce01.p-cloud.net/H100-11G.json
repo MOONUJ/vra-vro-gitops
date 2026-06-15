@@ -1,0 +1,50 @@
+{
+    "id": "afc746f1-d4d3-4586-ac28-055fe75b6dd6",
+    "name": "H100-11G",
+    "version": "0.0.0",
+    "attributes": [
+        {
+            "type": "number",
+            "name": "cpu"
+        },
+        {
+            "type": "number",
+            "name": "memory"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "gpuModel"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "gpuSize"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "gpuProfile"
+        },
+        {
+            "type": "number",
+            "name": "deviceCount"
+        },
+        {
+            "type": "Array/string",
+            "name": "cluster"
+        }
+    ]
+}

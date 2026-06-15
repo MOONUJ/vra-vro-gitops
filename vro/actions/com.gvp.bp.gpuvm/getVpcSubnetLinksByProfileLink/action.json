@@ -1,0 +1,37 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/3d1267c4-20f7-4738-8c41-07c0b719931e/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getVpcSubnetLinksByProfileLink/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/3d1267c4-20f7-4738-8c41-07c0b719931e/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/3d1267c4-20f7-4738-8c41-07c0b719931e/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "3d1267c4-20f7-4738-8c41-07c0b719931e",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "profileLink"
+        }
+    ],
+    "output-type": "Array/Properties",
+    "name": "getVpcSubnetLinksByProfileLink",
+    "module": "com.gvp.bp.gpuvm",
+    "description": "BP:Virtual Machine",
+    "version": "0.1.1",
+    "fqn": "com.gvp.bp.gpuvm/getVpcSubnetLinksByProfileLink",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

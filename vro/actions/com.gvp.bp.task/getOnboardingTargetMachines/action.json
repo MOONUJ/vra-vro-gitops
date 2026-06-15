@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/5795a26f-528f-43d4-a049-3e1bde22a15e/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.task/getOnboardingTargetMachines/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/5795a26f-528f-43d4-a049-3e1bde22a15e/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/5795a26f-528f-43d4-a049-3e1bde22a15e/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "5795a26f-528f-43d4-a049-3e1bde22a15e",
+    "output-type": "Array/Properties",
+    "name": "getOnboardingTargetMachines",
+    "module": "com.gvp.bp.task",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.task/getOnboardingTargetMachines",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

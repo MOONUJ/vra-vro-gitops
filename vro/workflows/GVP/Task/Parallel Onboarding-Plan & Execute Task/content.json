@@ -1,0 +1,66 @@
+{
+    "display-name": "Parallel Onboarding-Plan & Execute Task",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "machineIds",
+                "type": "Array/string"
+            }
+        ]
+    },
+    "output": {},
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "out-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 440.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var aa = System.getModule(\"com.gvp\").AaManager(true);\n\n/* deleted\nvar machine = aa.get(\"/iaas/api/machines/\" + vmName);\nvar cloudAccountId = machine.cloudAccountIds[0];\nvar vcenterHostname =  aa.get(\"/iaas/api/cloud-accounts/\" + cloudAccountId).cloudAccountProperties.hostName;\n*/\n\nfor each( var machineId in machineIds ){\n    var machine = aa.get(\"/iaas/api/machines/\" + machineId);\n    var cloudAccountId = machine.cloudAccountIds[0]\n    var vcenterHostname =  aa.get(\"/iaas/api/cloud-accounts/\" + cloudAccountId).cloudAccountProperties.hostName;\n    var vm = VcPlugin.getAllVirtualMachines(null, \"xpath:name='\" + machine.name + \"'\")[0];\n\n    var host = vm.summary.runtime.host;\n    var clusterName = [host.parent.name]\n    var project = aa.get(\"/iaas/api/projects?$filter=name eq '\" + vm.parent.name + \"'\").content;\n    if(project.length > 0 ){\n        var projectId = project[0].id;\n    } else {\n        throw \"VM Folder Name's Project is not Found\"\n    }\n\n    if(vm.config.guestId.indexOf(\"rocky\") >= 0){\n        var osName = \"rocky\";\n        var isLinux = true;\n    } else if (vm.config.guestId.indexOf(\"ubuntu\") >= 0 ) {\n        var osName = \"ubuntu\";\n        var isLinux = true\n    } else {\n        throw \"Please check the VM OS type, acceptable os is rocky and ubuntu.\"\n    }\n\n    var customProperties = {\n        \"isLinux\": isLinux,\n        \"osName\": osName,\n        \"displayName\": vm.name,\n        \"additionalNetworks\": \"[]\",\n        \"vcenterHostName\": vcenterHostname,\n        \"vcenterClusterName\": JSON.stringify(clusterName),\n        \"note\": vm.annotation,\n        \"createDate\": vm.config.createDate\n    };\n\n    var devices = vm.config.hardware.device;\n    var pciDevice = devices.filter( function(item){\n        return item instanceof VcVirtualPCIPassthrough;\n    });\n\n\n    if( pciDevice.length > 0){\n        var isGpu = true;\n        var gpuProfile = pciDevice[0].backing.vgpu;\n        var gpuSize =  System.getModule(\"com.gvp.bp.task\").getGpuSizeByGpuProfile(gpuProfile);\n        var gpuModel = System.getModule(\"com.gvp.bp.task\").getGpuModelByGpuProfile(gpuProfile);\n        var gpuDeviceCount = pciDevice.length;\n\n        var categories =  Server.getConfigurationElementCategoryWithPath(\"GVP/Instance\").subCategories\n        for each( var category in categories){\n            if( vm.sdkConnection.name.indexOf(category.name) >= 0) {\n                var instances = category.configurationElements;\n                break;\n            }\n        }\n        for each(var instance in instances){\n            if(instance.getAttributeWithKey(\"gpuProfile\").value == gpuProfile){\n                var machineInstance = instance.name\n            }\n        }\n        if(!machineInstance){\n            throw \"Cloud not found acceptable machine instance\"\n        }\n\n    } else {\n        var isGpu = false;\n    }\n    if(isGpu){\n        customProperties.gpuDeviceCount = gpuDeviceCount;\n        customProperties.gpuModel = gpuModel;\n        customProperties.gpuSize = gpuSize;\n        customProperties.gpuProfile = gpuProfile;\n        customProperties.machineInstance = machineInstance;\n    }\n\n    var onboardingPlanPayload = {\n    \"name\": \"ONBOARDING - \" + vm.name,\n    \"projectId\": projectId,\n    \"endpointIds\": [\n        cloudAccountId\n    ],\n    \"customProperties\": customProperties,\n    \"usePlacements\": false\n    }\n    var onboardingPlan = aa.post(\"/relocation/onboarding/plan\", onboardingPlanPayload);\n\n    var deploymentPayload = {\n        \"deployments\": [\n            {\n                \"name\": isGpu?\"Onboarding-GPUVM-\" + vm.name: \"Onboarding-VM-\" + vm.name,\n                \"resources\": [\n                    {\n                        \"link\": \"/resources/compute/\" + machine.id,\n                        \"name\": machine.name,\n                        \"tagLinks\": []\n                    }\n                ]\n            }\n        ],\n        \"planLink\": onboardingPlan.documentSelfLink\n    }\n\n    aa.post(\"/relocation/onboarding/task/create-deployment-bulk\", deploymentPayload);\n\n    var executePayload = {\n        \"planLink\": onboardingPlan.documentSelfLink\n    };\n\n    //aa.post(\"/relocation/api/wo/execute-plan\", executePayload);\n\n\n}\n\n\n\n\n\n\n\n",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "machineIds",
+                        "type": "Array/string",
+                        "export-name": "machineIds"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 50.0,
+                "x": 200.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "d4e4a7fb-3f99-4dab-99f4-424977838ab0",
+    "version": "0.0.1",
+    "api-version": "6.0.0",
+    "allowed-operations": "vef",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

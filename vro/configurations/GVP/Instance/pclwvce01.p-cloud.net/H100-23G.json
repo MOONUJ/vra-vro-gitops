@@ -1,0 +1,50 @@
+{
+    "id": "bcf73ef7-858c-4e38-ac8c-2e83e5491113",
+    "name": "H100-23G",
+    "version": "0.0.0",
+    "attributes": [
+        {
+            "type": "number",
+            "name": "cpu"
+        },
+        {
+            "type": "number",
+            "name": "memory"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "gpuModel"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "gpuSize"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "gpuProfile"
+        },
+        {
+            "type": "number",
+            "name": "deviceCount"
+        },
+        {
+            "type": "Array/string",
+            "name": "cluster"
+        }
+    ]
+}

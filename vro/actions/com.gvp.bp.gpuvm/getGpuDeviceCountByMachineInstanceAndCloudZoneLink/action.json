@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/f642b1c7-517d-4f3e-b439-5412c30513f5/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getGpuDeviceCountByMachineInstanceAndCloudZoneLink/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/f642b1c7-517d-4f3e-b439-5412c30513f5/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/f642b1c7-517d-4f3e-b439-5412c30513f5/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "f642b1c7-517d-4f3e-b439-5412c30513f5",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "machineInstance"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "cloudZoneLink"
+        }
+    ],
+    "output-type": "number",
+    "name": "getGpuDeviceCountByMachineInstanceAndCloudZoneLink",
+    "module": "com.gvp.bp.gpuvm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.gpuvm/getGpuDeviceCountByMachineInstanceAndCloudZoneLink",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

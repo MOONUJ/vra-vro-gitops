@@ -1,0 +1,9 @@
+{
+    "bind": [
+        {
+            "name": "machineIds",
+            "type": "Array/string",
+            "export-name": "machineIds"
+        }
+    ]
+}

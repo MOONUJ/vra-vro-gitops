@@ -1,0 +1,163 @@
+{
+    "display-name": "Compute Removal",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "inputProperties",
+                "type": "Properties"
+            }
+        ]
+    },
+    "attrib": [
+        {
+            "type": "VC:VirtualMachine",
+            "name": "vm"
+        },
+        {
+            "value": {
+                "boolean": {
+                    "value": false
+                }
+            },
+            "type": "boolean",
+            "name": "isGpu"
+        }
+    ],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 60.0,
+                "x": 660.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var computeId = inputProperties.resourceIds[0];\nif (computeId && computeId != \"N/A\" && inputProperties.customProperties.profile) {\n    var aa = System.getModule(\"com.gvp\").AaManager(true);\n    var projectId = inputProperties.projectId;\n    var computeLink = \"/resources/compute/\" + computeId;\n    var compute = aa.getUerp(computeLink);\n    var additionalNetworks = compute.customProperties.additionalNetworks?JSON.parse(compute.customProperties.additionalNetworks):[];\n    var nsx = null;\n    for each(var intfLink in compute.networkInterfaceLinks) {\n        var interfaceId = intfLink.split(\"/network-interfaces/\")[1];\n        var interface = aa.getUerp(intfLink);\n        if (interface.subnetLink && interface.tagLinks) {\n            var network = aa.get(\"/iaas/api/networks?$filter=name eq '\" + interface.name + \"'\").content[0];\n            var fabricNetwork = aa.get(\"/iaas/api/fabric-networks?$filter=externalId eq '\" + network.externalId + \"'\").content[0];\n            \n            var subnet = aa.getUerp(interface.subnetLink);\n            var tag = aa.getUerp(interface.tagLinks[0]);\n\n            //if (!nsx) { nsx = System.getModule(\"com.gvp\").NsxManager(aa.getUerp(subnet.endpointLink).endpointProperties.hostName.split(\".\")[0]);}\n            if (!nsx) { nsx = System.getModule(\"com.gvp\").NsxManager(aa.get(network._links[\"cloud-accounts\"].hrefs[0]).cloudAccountProperties.hostName.split(\".\")[0]); }\n            if(tag.value != \"bridge\") { \n                nsx.delete(\"/policy/api/v1\" + fabricNetwork.customProperties.path + \"/dhcp-static-binding-configs/\" + interfaceId);\n                if(compute.customProperties.dynamicNetworks && interface.address){\n                    var subnetRange = aa.getUerp(\"/provisioning/mgmt/subnet-range?$filter=subnetLink eq '\" + subnet.documentSelfLink + \"'\");\n                    var ipRangeId = subnetRange.documentLinks[0].split(\"/subnet-ranges/\")[1];\n                    aa.post(\"/iaas/api/network-ip-ranges/\" + ipRangeId + \"/ip-addresses/release?apiVersion=2021-07-15\",{ipAddresses: [interface.address]});\n                } else {\n                    System.log(\"Cannot Found dynamicNetworks Or Interface Address\")\n                }\n            }\n\n        }\n    }\n    for each(var intfLink in additionalNetworks){\n        var network = aa.get(intfLink.network);\n        var subnet = aa.get(\"/iaas/api/fabric-networks?$filter=externalId eq '\" + network.externalId + \"'\").content[0];\n        if(!nsx) { nsx = System.getModule(\"com.gvp\").NsxManager(aa.get(\"/iaas/api/cloud-accounts/\" + network.cloudAccountIds[0]).cloudAccountProperties.hostName.split(\".\")[0]);}\n        var tag = intfLink.tags[0];\n        if(tag.value != \"bridge\"){ \n            nsx.delete(\"/policy/api/v1\" + intfLink.segPath + \"/dhcp-static-binding-configs/\" + intfLink.id);\n            aa.post(intfLink.ipRangelink + \"/ip-addresses/release?apiVersion=2021-07-15\",{\n                ipAddresses: [intfLink.address]\n            });\n        }\n\n    }\n}\n\n// GPU License release 를 위해 VM GuestOS shutdown 진행\nif(compute.customProperties[\"gpuModel\"]) {\n    var computeName = compute.name;\n    vm = VcPlugin.getAllVirtualMachines(null, \"xpath:name='\" + computeName + \"'\")[0];\n    if(vm.state == \"poweredOn\"){\n        isGpu = true;\n    } else {\n        isGpu = false;\n    }\n    \n}",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "inputProperties",
+                        "type": "Properties",
+                        "export-name": "inputProperties"
+                    }
+                ]
+            },
+            "out-binding": {
+                "bind": [
+                    {
+                        "name": "isGpu",
+                        "type": "boolean",
+                        "export-name": "isGpu"
+                    },
+                    {
+                        "name": "vm",
+                        "type": "VC:VirtualMachine",
+                        "export-name": "vm"
+                    }
+                ]
+            },
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 70.0,
+                "x": 220.0
+            },
+            "name": "item1",
+            "out-name": "item4",
+            "type": "task",
+            "comparator": 0
+        },
+        {
+            "display-name": "Shut down guest OS and wait",
+            "in-binding": {
+                "bind": [
+                    {
+                        "description": "Virtual machine to shut down",
+                        "name": "vm",
+                        "type": "VC:VirtualMachine",
+                        "export-name": "vm"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": " ",
+            "position": {
+                "y": 70.0,
+                "x": 480.0
+            },
+            "name": "item2",
+            "out-name": "item0",
+            "type": "link",
+            "linked-workflow-id": "BD80808080808080808080808080808075C280800122528313869552e41805bb1",
+            "comparator": 0
+        },
+        {
+            "in-binding": {},
+            "position": {
+                "y": 140.0,
+                "x": 380.0
+            },
+            "name": "item3",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Decision",
+            "script": {
+                "value": "// Generated by the system, cannot be edited\nreturn (isGpu === true);",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "isGpu",
+                        "type": "boolean",
+                        "export-name": "isGpu"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Custom decision based on a custom script.",
+            "condition": [
+                {
+                    "value": "",
+                    "name": "isGpu",
+                    "type": "boolean",
+                    "comparator": "0",
+                    "label": "null"
+                }
+            ],
+            "position": {
+                "y": 60.0,
+                "x": 340.0
+            },
+            "name": "item4",
+            "out-name": "item2",
+            "alt-out-name": "item3",
+            "type": "condition",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "e74f3d6a-f4c5-48c9-9d38-04cf4d7d6b8a",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

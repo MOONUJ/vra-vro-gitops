@@ -1,0 +1,14 @@
+{
+    "bind": [
+        {
+            "name": "aaUrl",
+            "type": "string",
+            "export-name": "aaUrl"
+        },
+        {
+            "name": "aaHostName",
+            "type": "string",
+            "export-name": "aaHostName"
+        }
+    ]
+}

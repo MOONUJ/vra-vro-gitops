@@ -1,0 +1,50 @@
+{
+    "id": "18e91f04-92da-4809-a1e5-3a86c4200e87",
+    "name": "H100-6G",
+    "version": "0.0.0",
+    "attributes": [
+        {
+            "type": "number",
+            "name": "cpu"
+        },
+        {
+            "type": "number",
+            "name": "memory"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "gpuModel"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "gpuSize"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "gpuProfile"
+        },
+        {
+            "type": "number",
+            "name": "deviceCount"
+        },
+        {
+            "type": "Array/string",
+            "name": "cluster"
+        }
+    ]
+}

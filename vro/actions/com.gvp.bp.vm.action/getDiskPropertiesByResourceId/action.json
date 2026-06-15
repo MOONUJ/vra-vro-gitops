@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/2ef166dd-e6e2-4ebe-b037-22db3c93a484/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm.action/getDiskPropertiesByResourceId/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/2ef166dd-e6e2-4ebe-b037-22db3c93a484/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/2ef166dd-e6e2-4ebe-b037-22db3c93a484/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "2ef166dd-e6e2-4ebe-b037-22db3c93a484",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "resourceId"
+        }
+    ],
+    "output-type": "Array/Properties",
+    "name": "getDiskPropertiesByResourceId",
+    "module": "com.gvp.bp.vm.action",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm.action/getDiskPropertiesByResourceId",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

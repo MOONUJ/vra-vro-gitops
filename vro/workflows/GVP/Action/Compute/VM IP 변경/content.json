@@ -1,0 +1,129 @@
+{
+    "display-name": "VM IP 변경",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "_metadata_main_catalog",
+                "type": "string"
+            },
+            {
+                "name": "_metadata_catalog",
+                "type": "string"
+            },
+            {
+                "name": "newIpAddress",
+                "type": "string"
+            },
+            {
+                "name": "releaseMode",
+                "type": "string"
+            },
+            {
+                "name": "interfaceLink",
+                "type": "string"
+            },
+            {
+                "name": "resourceId",
+                "type": "string"
+            },
+            {
+                "name": "requestMessage",
+                "type": "string"
+            }
+        ]
+    },
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 500.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var aa = System.getModule(\"com.gvp\").AaManager(true);\n\nvar computeName = 'mujtest01';\n\nvar vm = VcPlugin.getAllVirtualMachines(null, \"xpath:name='\" + computeName + \"'\")[0];\nvar guestOperationsManager = vm.sdkConnection.guestOperationsManager;\nvar guestAuth = new VcNamePasswordAuthentication();\nguestAuth.username = adminUsername;\nguestAuth.password = adminPassword;\n\ntry {\n    guestOperationsManager.authManager.validateCredentialsInGuest(vm, guestAuth);\n} catch (e){\n    System.log(e);\n    throw \"Failed to authenticate with the Virtual Machine\";\n}\n\nvar nsx = System.getModule(\"com.gvp\").NsxManager(aa.getUerp(subnet.endpointLink).endpointProperties.hostName.split(\".\")[0]);\nvar nsxUpdated = false;\nfor each(var dhcp in nsx.get(\"/policy/api/v1\" + subnet.customProperties.__path + \"/dhcp-static-binding-configs\").results) {\n    if (dhcp.id == interfaceId) {\n        dhcp.ip_address = newIpAddress;\n        nsx.patch(\"/policy/api/v1\" + dhcp.path, dhcp);\n        nsxUpdated = true;\n        break;\n    }\n}\n\nvar programPath = \"/bin/bash\";\nvar arguments = \"-c 'sudo netplan apply'\"\n\nvar guestProgramSpec = new VcGuestProgramSpec();\nguestProgramSpec.programPath = programPath;\nguestProgramSpec.arguments = arguments;\n\nvar processManager = guestOperationsManager.processManager;\ntry {\n    var pid = processManager.startProgramInGuest(vm , guestAuth , guestProgramSpec);\n} catch (e){\n    throw e;\n}\n\n",
+                "encoded": false
+            },
+            "in-binding": {},
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 130.0,
+                "x": 160.0
+            },
+            "name": "item1",
+            "type": "task",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "if (!resourceId) { throw \"resourceId cannot be null\"; }\nif (!interfaceLink) { throw \"interfaceLink cannot be null\"; }\nif (!newIpAddress) { throw \"newIpAddress cannot be null\"; }\nif (!releaseMode) { throw \"releaseMode cannot be null\"; }\n//if (!adminUsername) { throw \"adminUsername cannot be null\"; }\n//if (!adminPassword) { throw \"adminPassword cannot be null\"; }\n\nif( interfaceLink.indexOf(\"/network-interfaces/\") > -1){\n    var interfaceId = interfaceLink.split(\"/network-interfaces/\")[1];\n    var intfLink = \"/resources/network-interfaces/\" + interfaceId;\n    var properties = System.getContext().getParameter(\"__metadata_resourceProperties\");\n    var context = System.getContext();\n    var conv = System.getModule(\"com.gvp\").Converter();\n    var aa = System.getModule(\"com.gvp\").AaManager(true);\n    var computeLink = \"/resources/compute/\" + resourceId;\n    var compute = aa.getUerp(computeLink);\n    var projectId = compute.customProperties.project;\n    var computeDesc = aa.getUerp(compute.descriptionLink);    \n    var interface = aa.getUerp(intfLink);\n    var ipAddress = interface.address;\n    var subnet = aa.getUerp(interface.subnetLink);\n    var subnetRange = aa.getUerp(\"/provisioning/mgmt/subnet-range?$filter=subnetLink eq '\" + subnet.documentSelfLink + \"'\");\n    var subnetRangeLink = subnetRange.documents[subnetRange.documentLinks[0]].documentSelfLink;\n    var ipRangeId = subnetRangeLink.split(\"/subnet-ranges/\")[1];\n    var subnetIps = aa.getUerp(\"/resources/ip-addresses?expand&$filter=subnetRangeLink eq '\" + subnetRangeLink + \"'\");\n    var curIpDocument = null;\n    var newIpDocument = null;\n    var tag = aa.getUerp(interface.tagLinks[0]);\n\n    if(tag.value != \"bridge\"){\n        for each(var link in subnetIps.documentLinks) {\n            var document = subnetIps.documents[link];\n            if (document.ipAddress == ipAddress) { curIpDocument = document; }\n            if (document.ipAddress == newIpAddress) {\n                newIpDocument = document;\n                if (document.ipAddressStatus == \"ALLOCATED\") { throw 'Error [Change IP Address] : ip address is duplicated'; }\n            }\n        }\n        if (!curIpDocument) { throw \"Error [Change IP Address] : could not find current ip address\"; }\n        curIpDocument.ipAddressStatus = \"RELEASED\";\n        curIpDocument.connectedResourceLink = undefined;\n        curIpDocument.ipAllocationType = \"NONE\";\n        curIpDocument = aa.patchUerp(curIpDocument.documentSelfLink, curIpDocument);\n        if (newIpDocument) {\n            newIpDocument.ipAddressStatus = \"ALLOCATED\";\n            newIpDocument.connectedResourceLink = intfLink;\n            newIpDocument.ipAllocationType = \"SYSTEM\";\n            newIpDocument = aa.patchUerp(newIpDocument.documentSelfLink, newIpDocument);\n        } else {\n            newIpDocument = aa.postUerp(\"/resources/ip-addresses\", {\n                subnetRangeLink: subnetRangeLink,\n                connectedResourceLink: intfLink,\n                ipAddress: newIpAddress,\n                ipAddressStatus: \"ALLOCATED\",\n                ipAllocationType: \"SYSTEM\",\n                customProperties: {}\n            });\n        }\n        var nsx = System.getModule(\"com.gvp\").NsxManager(aa.getUerp(subnet.endpointLink).endpointProperties.hostName.split(\".\")[0]);\n        var nsxUpdated = false;\n        for each(var dhcp in nsx.get(\"/policy/api/v1\" + subnet.customProperties.__path + \"/dhcp-static-binding-configs\").results) {\n            if (dhcp.id == interfaceId) {\n                dhcp.ip_address = newIpAddress;\n                nsx.patch(\"/policy/api/v1\" + dhcp.path, dhcp);\n                nsxUpdated = true;\n                break;\n            }\n        }\n        if (!nsxUpdated) {\n            curIpDocument.ipAddressStatus = \"ALLOCATED\";\n            curIpDocument.connectedResourceLink = intfLink;\n            curIpDocument.ipAllocationType = \"SYSTEM\";\n            curIpDocument = aa.patchUerp(curIpDocument.documentSelfLink, curIpDocument);\n            newIpDocument.ipAddressStatus = \"AVAILABLE\";\n            newIpDocument.connectedResourceLink = undefined;\n            newIpDocument.ipAllocationType = \"NONE\";\n            newIpDocument = aa.patchUerp(newIpDocument.documentSelfLink, newIpDocument);\n            throw 'could not find previous dhcp setting in nsx';\n        }\n\n        interface.address = newIpAddress;\n        interface.addressLinks = [newIpDocument.documentSelfLink];\n        aa.putUerp(intfLink, interface);\n        if (interface.customProperties.primaryAddress == \"true\") {\n            compute.address = newIpAddress;\n            compute = aa.putUerp(computeLink, compute);\n            computeDesc.address = newIpAddress;\n            aa.putUerp(compute.descriptionLink, computeDesc);\n        }\n        /*\n        var ipChangeScript =  Server.getResourceElementCategoryWithPath(\"/GVP/cloud-init-ip-replace\").resourceElements[0].getContentAsMimeAttachment().content;\n        ipChangeScript = ipChangeScript.replace(\"replaceOldIp\", ipAddress);\n        ipChangeScript = ipChangeScript.replace(\"replaceNewIp\", newIpAddress);\n        //scripts += \"sudo /usr/bin/cloud-init clean -c network\\n\";\n        //scripts += \"sudo rm -rf /etc/sysconfig/network-scripts/ifcfg-*\\n\";\n        //scripts += \"sudo rm -rf /etc/network/interfaces\\n\";\n        //scripts += \"sudo rm -rf /etc/netplan/*\\n\";\n        //scripts += \"sudo /usr/bin/cloud-init init --local\\n\";\n        //scripts += \"sudo /usr/bin/cloud-init init\\n\";\n        //var resourceId = computeLink.split(\"/compute/\")[1];\n        //var resourceName = compute.name;\n        var vcConf = System.getModule(\"com.gvp\").ConfManager().load(\"GVP/Endpoint/\" + aa.getUerp(compute.endpointLink).endpointProperties.hostName.split(\".\")[0]);\n        var stdout = System.getModule(\"com.gvp\").execScripts(vcConf.hostname, vcConf.username, vcConf.password, compute.name, adminUsername, adminPassword, ipChangeScript);\n        System.log(stdout);\n        */\n        aa.post(\"/iaas/api/machines/\" + resourceId + \"/operations/reboot\", {});\n        if (releaseMode != \"RELEASED\") {\n            curIpDocument.ipAddressStatus = releaseMode;\n            aa.patchUerp(curIpDocument.documentSelfLink, curIpDocument);\n        }\n\n    } else {\n        throw \"This Interface could not change IP Address. Check Interface Network Type Tag.\"\n    }\n} else {\n    var aa = System.getModule(\"com.gvp\").AaManager(true);\n    var machine = aa.get(\"/iaas/api/machines/\" + resourceId);\n    var additionalNetworks = JSON.parse(machine.customProperties.additionalNetworks);\n    for(var i =0; i < additionalNetworks.length; i++){\n        if(additionalNetworks[i].id == interfaceLink){    \n            var network = aa.get(additionalNetworks[i].network);\n            var cloudAccount = aa.get(\"/iaas/api/cloud-accounts/\" + network.cloudAccountIds[0]);\n            var nsx = System.getModule(\"com.gvp\").NsxManager(cloudAccount.cloudAccountProperties.hostName.split(\".\")[0]);\n            var nsxUpdated = false;\n            for each(var dhcp in nsx.get(\"/policy/api/v1\" + additionalNetworks[i].segPath + \"/dhcp-static-binding-configs\").results) {\n                if (dhcp.id == interfaceLink) {\n                    dhcp.ip_address = newIpAddress;\n                    nsx.patch(\"/policy/api/v1\" + dhcp.path, dhcp);\n                    nsxUpdated = true;\n                    break;\n                }\n            }\n            if(nsxUpdated){\n                try{\n                    aa.post(additionalNetworks[i].ipRangelink + \"/ip-addresses/release?apiVersion=2021-07-15\", { ipAddresses: [additionalNetworks[i].address]});\n                    aa.post(additionalNetworks[i].ipRangelink + \"/ip-addresses/allocate?apiVersion=2021-07-15\", { ipAddresses: [newIpAddress]});\n                } catch (e){\n                    // DHCP Setting Roll Back\n                    for each(var dhcp in nsx.get(\"/policy/api/v1\" + additionalNetworks[i].segPath + \"/dhcp-static-binding-configs\").results) {\n                        if (dhcp.id == interfaceLink) {\n                            dhcp.ip_address = additionalNetworks[i].address;\n                            nsx.patch(\"/policy/api/v1\" + dhcp.path, dhcp);\n                            nsxUpdated = true;\n                            break;\n                        }\n                    }\n                    throw \"Cloud not Allocate new IP Address : \" + e;\n                }\n\n                additionalNetworks[i].address = newIpAddress;\n            } else{\n                throw 'could not find previous dhcp setting in nsx';\n            }   \n        }\n        aa.patch(\"/iaas/api/machines/\" + resourceId, {\n            customProperties: {\n                additionalNetworks: JSON.stringify(additionalNetworks)\n            }\n        });\n        aa.post(\"/iaas/api/machines/\" + resourceId + \"/operations/reboot\", {});\n\n    }\n}\n\n\n",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "interfaceLink",
+                        "type": "string",
+                        "export-name": "interfaceLink"
+                    },
+                    {
+                        "name": "newIpAddress",
+                        "type": "string",
+                        "export-name": "newIpAddress"
+                    },
+                    {
+                        "name": "releaseMode",
+                        "type": "string",
+                        "export-name": "releaseMode"
+                    },
+                    {
+                        "name": "resourceId",
+                        "type": "string",
+                        "export-name": "resourceId"
+                    },
+                    {
+                        "name": "adminUsername",
+                        "type": "string"
+                    },
+                    {
+                        "name": "adminPassword",
+                        "type": "SecureString"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 70.0,
+                "x": 220.0
+            },
+            "name": "item2",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item2",
+    "object-name": "workflow:name=generic",
+    "id": "6404903b-4846-4b75-b52b-89008705c78e",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

@@ -1,0 +1,44 @@
+{
+    "id": "7621c598-3a7a-4827-9e30-85836dd98cdf",
+    "name": "data",
+    "version": "0.0.0",
+    "attributes": [
+        {
+            "value": {
+                "string": {
+                    "value": "vc-mgmt.gooddi.lab"
+                }
+            },
+            "type": "string",
+            "name": "hostname"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "administrator@vsphere.local"
+                }
+            },
+            "type": "string",
+            "name": "username"
+        },
+        {
+            "value": {
+                "secure-string": {
+                    "value": "20BZ56H4DO77P61G72N65K31N32S33H21S56Z4DJ77L61J72Z65R31G32W33Y21ID2DBACCP7A6FC6ET3C63852MEE935A7S2773F07YEE43EC3O478310EI7CE4C02UF8E5783N31882BAY9B43AFDND1F7216Z",
+                    "isPlainText": false
+                }
+            },
+            "type": "SecureString",
+            "name": "password"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "GVP/Endpoint/vc-mgmt"
+                }
+            },
+            "type": "string",
+            "name": "_path"
+        }
+    ]
+}

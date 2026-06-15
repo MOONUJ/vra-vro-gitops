@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/8d1e5925-f8c6-497f-bc5e-3127f65dd123/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.packages/getProjects/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/8d1e5925-f8c6-497f-bc5e-3127f65dd123/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/8d1e5925-f8c6-497f-bc5e-3127f65dd123/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "8d1e5925-f8c6-497f-bc5e-3127f65dd123",
+    "output-type": "Array/Properties",
+    "name": "getProjects",
+    "module": "com.gvp.packages",
+    "version": "0.0.0",
+    "fqn": "com.gvp.packages/getProjects",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

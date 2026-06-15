@@ -1,0 +1,9 @@
+{
+    "bind": [
+        {
+            "name": "projectId",
+            "type": "string",
+            "export-name": "projectId"
+        }
+    ]
+}

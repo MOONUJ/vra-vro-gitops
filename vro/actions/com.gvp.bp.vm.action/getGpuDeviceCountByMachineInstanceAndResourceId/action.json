@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/bd022992-b020-42e7-b4ad-6ab536442b01/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm.action/getGpuDeviceCountByMachineInstanceAndResourceId/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/bd022992-b020-42e7-b4ad-6ab536442b01/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/bd022992-b020-42e7-b4ad-6ab536442b01/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "bd022992-b020-42e7-b4ad-6ab536442b01",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "machineInstance"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "resourceId"
+        }
+    ],
+    "output-type": "number",
+    "name": "getGpuDeviceCountByMachineInstanceAndResourceId",
+    "module": "com.gvp.bp.vm.action",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm.action/getGpuDeviceCountByMachineInstanceAndResourceId",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/c7c26cf0-7a0b-473c-bd2f-e6060d22d3fd/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm/getVsphereClusters/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/c7c26cf0-7a0b-473c-bd2f-e6060d22d3fd/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/c7c26cf0-7a0b-473c-bd2f-e6060d22d3fd/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "c7c26cf0-7a0b-473c-bd2f-e6060d22d3fd",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "cloudZoneLink"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "profile"
+        }
+    ],
+    "output-type": "Array/string",
+    "name": "getVsphereClusters",
+    "module": "com.gvp.bp.vm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm/getVsphereClusters",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

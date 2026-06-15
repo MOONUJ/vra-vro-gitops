@@ -1,0 +1,11 @@
+{
+  "vcf_url": "https://poscodx-auto.gooddi.lab",
+  "org": "default",
+  "refresh_token": "YOUR_REFRESH_TOKEN",
+  "verify_ssl": false,
+  "gitops_tag": "gvp",
+  "package": {
+    "name": "com.gvp.poscodx",
+    "local_path": "vro/packages/com.gvp.poscodx.package"
+  }
+}

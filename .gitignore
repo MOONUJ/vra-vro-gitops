@@ -1,0 +1,6 @@
+gitops/config.json
+__pycache__/
+*.pyc
+.DS_Store
+vco_openapi.json
+*.pdf

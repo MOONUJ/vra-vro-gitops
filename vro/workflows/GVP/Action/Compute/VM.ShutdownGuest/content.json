@@ -1,0 +1,77 @@
+{
+    "display-name": "VM.ShutdownGuest",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "_metadata_main_catalog",
+                "type": "string"
+            },
+            {
+                "name": "_metadata_catalog",
+                "type": "string"
+            },
+            {
+                "name": "resourceId",
+                "type": "Array/string"
+            },
+            {
+                "name": "requestMessage",
+                "type": "string"
+            }
+        ]
+    },
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 300.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var aa = System.getModule(\"com.gvp\").AaManager(true);\n\nvar requestIds = [];\nfor each(var id in resourceId){\n    var result = aa.post(\"/deployment/api/resources/\"+id+\"/requests\",{\n        \"actionId\": \"Cloud.vSphere.Machine.Shutdown\",\n    });\n    requestIds.push(result.id);\n}\n\nvar allSuccessful = false;\nvar count = 0;\nwhile (!allSuccessful) {\n    allSuccessful = true; // 매 루프마다 초기화\n    var statuses = [];\n\n    for (var i = 0; i < requestIds.length; i++) {\n        var requestId = requestIds[i];\n        var result = aa.get(\"/deployment/api/requests/\" + requestId);\n        statuses.push(result.status);\n\n        if (result.status !== \"SUCCESSFUL\") {\n            allSuccessful = false;\n        }\n        if (result.status == \"FAILED\"){\n            throw \"FAILED : \" + result.details\n        }\n    }\n\n    count++;\n    if (count > 10) {\n        throw \"Waiting Time out\"\n    }\n    // Optional: 너무 빠른 루프 방지\n    System.sleep(5000); // 5초 대기 (아래에 sleep 함수 있음)\n    \n}",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "resourceId",
+                        "type": "Array/string",
+                        "export-name": "resourceId"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 60.0,
+                "x": 150.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "6c65fc19-e087-45f9-b815-ba298da3976b",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

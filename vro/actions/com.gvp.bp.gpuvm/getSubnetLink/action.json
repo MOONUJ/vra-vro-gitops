@@ -1,0 +1,46 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/a737c242-24b2-47e5-9f16-a29633e1bf9c/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getSubnetLink/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/a737c242-24b2-47e5-9f16-a29633e1bf9c/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/a737c242-24b2-47e5-9f16-a29633e1bf9c/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "a737c242-24b2-47e5-9f16-a29633e1bf9c",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "regionLink"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "orgCode"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "orgTagCategory"
+        }
+    ],
+    "output-type": "Array/Properties",
+    "name": "getSubnetLink",
+    "module": "com.gvp.bp.gpuvm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.gpuvm/getSubnetLink",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

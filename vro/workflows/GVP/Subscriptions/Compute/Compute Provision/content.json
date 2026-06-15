@@ -1,0 +1,65 @@
+{
+    "display-name": "Compute Provision",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "inputProperties",
+                "type": "Properties"
+            }
+        ]
+    },
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 380.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var computeId = inputProperties.resourceIds[0];\nif (computeId && computeId != \"N/A\" && inputProperties.customProperties.profile) {\n    var aa = System.getModule(\"com.gvp\").AaManager(true);\n    var endpointId = inputProperties.endpointId;\n    var endpointLink = \"/iaas/api/cloud-accounts/\" + endpointId;\n    var endpointName = aa.get(endpointLink).cloudAccountProperties.hostName.split(\".\")[0];\n    var customProperties = inputProperties.customProperties;\n    var rootPassword = customProperties.rootPassword ? customProperties.rootPassword : null;\n    var computeLink = \"/resources/compute/\" + computeId;\n    var compute = aa.getUerp(computeLink);\n    var computeName = compute.name;\n    var nsx = null;\n    var gpuCount = customProperties.gpuDeviceCount?Number(customProperties.gpuDeviceCount):1;\n    var deviceIndex = [];\n    var bridgeIps = \"\";\n    var vm = VcPlugin.getAllVirtualMachines(null, \"xpath:name='\" + computeName + \"'\")[0];\n    if(compute.customProperties.dynamicNetworks){\n        var dynamicNetworks = JSON.parse(compute.customProperties.dynamicNetworks);\n        for (var i = 0 ; i < compute.networkInterfaceLinks.length; i++ ){\n            var interfaceId = compute.networkInterfaceLinks[i].split(\"/network-interfaces/\")[1];\n            var interface = aa.getUerp(compute.networkInterfaceLinks[i]);\n            var tag = aa.getUerp(interface.tagLinks[0]);\n            var macAddress = interface.customProperties.mac_address;\n            var subnet = aa.getUerp(interface.subnetLink);\n            var subnetRange = aa.getUerp(\"/provisioning/mgmt/subnet-range?$filter=subnetLink eq '\" + subnet.documentSelfLink + \"'\");\n            var subnetRangeLink = subnetRange.documents[subnetRange.documentLinks[0]].documentSelfLink;\n            var ipRangeId = subnetRange.documentLinks[0].split(\"/subnet-ranges/\")[1];\n            var dnsServerAddresses = subnet.dnsServerAddresses;\n            var gatewayAddress =subnet.gatewayAddress;\n            var network = dynamicNetworks.filter(function(item){ return item.deviceIndex == interface.deviceIndex})[0];\n            if (!nsx) { nsx = System.getModule(\"com.gvp\").NsxManager(aa.getUerp(subnet.endpointLink).endpointProperties.hostName.split(\".\")[0]);}\n            if(tag.value != \"bridge\"){\n                if(network.address){\n                    var ipResponse = aa.post(\"/iaas/api/network-ip-ranges/\" + ipRangeId + \"/ip-addresses/allocate?apiVersion=2021-07-15\",{ipAddresses: [network.address]})\n                    var networkAddress = network.address;\n                } else {\n                    var ipResponse = aa.post(\"/iaas/api/network-ip-ranges/\" + ipRangeId + \"/ip-addresses/allocate?apiVersion=2021-07-15\",{numberOfIps: 1});\n                    System.sleep(1000);\n                    var requestTracker = aa.get(ipResponse.selfLink);\n                    var ipAddressLink = requestTracker.resources[0];\n                    var networkAddress = aa.get(ipAddressLink + \"?apiVersion=2021-07-15\").ipAddress;\n                }\n                deviceIndex.push(interface.deviceIndex);\n                try {\n                    var payload =  {\n                        resource_type: \"DhcpV4StaticBindingConfig\",\n                        display_name: computeName + \"-\" + macAddress,\n                        //host_name: network.primaryAddress == \"true\"?computeName:computeName + String(interface.deviceIndex),\n                        ip_address: networkAddress,\n                        mac_address: macAddress,\n                        //gateway_address: gatewayAddress,\n                        options: dnsServerAddresses.length==0||network.primaryAddress == \"false\"?{}:{\n                            others: [\n                                {\n                                    code: 6,\n                                    values: dnsServerAddresses\n                                }\n                            ]\n                        }\n                    }\n                    if(network.primaryAddress == \"true\") { \n                        payload.gateway_address = gatewayAddress\n                        payload.host_name = computeName\n                    };\n                    nsx.put(\"/policy/api/v1\" + subnet.customProperties.__path + \"/dhcp-static-binding-configs/\" + interfaceId, payload);\n                } catch (e) {\n                    aa.post(\"/iaas/api/network-ip-ranges/\" + ipRangeId + \"/ip-addresses/release?apiVersion=2021-07-15\",{ipAddresses: [networkAddress]})\n                    throw e;\n                }\n\n            } else if (tag.value == \"bridge\") {\n                bridgeIps += interface.address + \" \";\n            }\n\n\n        }\n        if(customProperties.osName == \"rocky\" && dynamicNetworks.filter(function(item){return item.assignment == \"static\"}).length == 0){\n            var powerTask = vm.powerOnVM_Task();\n            System.getModule(\"com.vmware.library.vc.basic\").vim3WaitTaskEnd(powerTask, false, 1) ;\n            System.getModule(\"com.vmware.library.vc.vm.tools\").vim3WaitToolsStarted(vm, 1, 5);\n            if(rootPassword){\n                var scripts = \"/bin/bash -c '\"\n                scripts += 'for dev in $(nmcli -t -f DEVICE,STATE device | grep disconnected | cut -d: -f1); do nmcli connection show \"$dev\" 2>/dev/null || nmcli connection add type ethernet ifname \"$dev\" con-name \"$dev\" autoconnect yes; done'\n                scripts += \"'\"\n                var vcConf = System.getModule(\"com.gvp\").ConfManager().load(\"GVP/Endpoint/\" + endpointName);\n                var execScripts = System.getModule(\"com.gvp\").execScripts;\n                var execResult = execScripts(vcConf.hostname, vcConf.username, vcConf.password, computeName, \"root\", rootPassword, scripts);\n                System.log(execResult)\n            }\n        }\n    } else{\n        System.log(\"Cannot find dynamicNetworks\");\n    }\n}",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "inputProperties",
+                        "type": "Properties",
+                        "export-name": "inputProperties"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 70.0,
+                "x": 180.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "11fd9284-3f91-443d-ae23-4ae9681bbf17",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

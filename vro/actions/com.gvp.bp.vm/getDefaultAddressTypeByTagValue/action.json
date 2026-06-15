@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/ab0d761b-b2e0-47fe-88a6-3131e3cdef5e/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm/getDefaultAddressTypeByTagValue/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/ab0d761b-b2e0-47fe-88a6-3131e3cdef5e/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/ab0d761b-b2e0-47fe-88a6-3131e3cdef5e/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "ab0d761b-b2e0-47fe-88a6-3131e3cdef5e",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "tagValue"
+        }
+    ],
+    "output-type": "string",
+    "name": "getDefaultAddressTypeByTagValue",
+    "module": "com.gvp.bp.vm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm/getDefaultAddressTypeByTagValue",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

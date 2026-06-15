@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/49fe5835-5784-4b61-a05a-b1366d9e1f65/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm.action/getInterfacesByResourceIdForChangeIpAddress/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/49fe5835-5784-4b61-a05a-b1366d9e1f65/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/49fe5835-5784-4b61-a05a-b1366d9e1f65/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "49fe5835-5784-4b61-a05a-b1366d9e1f65",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "resourceId"
+        }
+    ],
+    "output-type": "Array/Properties",
+    "name": "getInterfacesByResourceIdForChangeIpAddress",
+    "module": "com.gvp.bp.vm.action",
+    "version": "0.0.2",
+    "fqn": "com.gvp.bp.vm.action/getInterfacesByResourceIdForChangeIpAddress",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

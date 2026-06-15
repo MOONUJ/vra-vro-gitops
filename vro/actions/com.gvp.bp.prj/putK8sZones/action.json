@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/e5e4c966-2ec9-4e36-8507-018362564b53/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.prj/putK8sZones/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/e5e4c966-2ec9-4e36-8507-018362564b53/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/e5e4c966-2ec9-4e36-8507-018362564b53/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "e5e4c966-2ec9-4e36-8507-018362564b53",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "kzId"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "projectId"
+        }
+    ],
+    "output-type": "Any",
+    "name": "putK8sZones",
+    "module": "com.gvp.bp.prj",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.prj/putK8sZones",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

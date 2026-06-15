@@ -1,0 +1,70 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/inventory/System/Workflows/GVP/Task/",
+                "rel": "up"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/executions/",
+                "rel": "executions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/presentation/",
+                "rel": "presentation"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/tasks/",
+                "rel": "tasks"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/icon/",
+                "rel": "icon"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/schema/",
+                "rel": "schema"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/content/",
+                "rel": "content"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/interactions/",
+                "rel": "interactions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/001b8fca-d18c-4efc-b6fc-d0537bca24a1/validate/",
+                "rel": "validate"
+            }
+        ]
+    },
+    "id": "001b8fca-d18c-4efc-b6fc-d0537bca24a1",
+    "customized-icon": false,
+    "name": "Onboarding-Plan & Execute Task",
+    "version": "0.0.1",
+    "category-id": "469280199e38cae0019e38e9176f0d5f",
+    "input-parameters": [
+        {
+            "type": "string",
+            "name": "vmName"
+        },
+        {
+            "type": "string",
+            "name": "project"
+        },
+        {
+            "type": "boolean",
+            "name": "isLinux"
+        },
+        {
+            "type": "string",
+            "name": "osName"
+        }
+    ]
+}

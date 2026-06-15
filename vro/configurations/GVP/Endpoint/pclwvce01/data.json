@@ -1,0 +1,29 @@
+{
+    "id": "5e544f05-b45f-4391-8c80-9a48553cb1b3",
+    "name": "data",
+    "version": "0.0.0",
+    "attributes": [
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "hostname"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": ""
+                }
+            },
+            "type": "string",
+            "name": "username"
+        },
+        {
+            "type": "SecureString",
+            "name": "password"
+        }
+    ]
+}

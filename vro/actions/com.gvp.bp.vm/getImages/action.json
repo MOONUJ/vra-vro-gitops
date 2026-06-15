@@ -1,0 +1,42 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/3fd44f71-610e-4412-b171-084a0c28ee84/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm/getImages/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/3fd44f71-610e-4412-b171-084a0c28ee84/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/3fd44f71-610e-4412-b171-084a0c28ee84/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "3fd44f71-610e-4412-b171-084a0c28ee84",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "regionLink"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "ostype"
+        }
+    ],
+    "output-type": "Array/Properties",
+    "name": "getImages",
+    "module": "com.gvp.bp.vm",
+    "description": "BP:Virtual Machine",
+    "version": "0.1.2",
+    "fqn": "com.gvp.bp.vm/getImages",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

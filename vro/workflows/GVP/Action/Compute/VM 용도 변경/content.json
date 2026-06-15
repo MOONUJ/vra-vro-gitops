@@ -1,0 +1,86 @@
+{
+    "display-name": "VM 용도 변경",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "_metadata_main_catalog",
+                "type": "string"
+            },
+            {
+                "name": "_metadata_catalog",
+                "type": "string"
+            },
+            {
+                "name": "resourceId",
+                "type": "string"
+            },
+            {
+                "name": "requestMessage",
+                "type": "string"
+            },
+            {
+                "name": "note",
+                "type": "string"
+            }
+        ]
+    },
+    "output": {},
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "out-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 440.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var aa = System.getModule(\"com.gvp\").AaManager(true);\nvar context = System.getContext();\nvar resourceProperties = context.getParameter(\"__metadata_resourceProperties\");\n\nvar compute = aa.getUerp(\"/resources/compute/\" + resourceId );\nif(compute.customProperties.note){\n    System.log(\"ASIS customProperties.note = \" + compute.customProperties.note );\n} else {\n    System.log(\"ASIA customProperties.note is null\")\n}\nSystem.log(\"TOBE customProperties.note = \" + note);\ncompute.customProperties.note = note;\naa.patchUerp(\"/resources/compute/\" + resourceId, compute);\n\nvar vm = VcPlugin.getAllVirtualMachines(null, \"xpath:instanceId='\" + compute.customProperties.instanceUUID + \"'\")[0];\nvar vmSpec = new VcVirtualMachineConfigSpec();\nvmSpec.annotation = note;\nvar vmTask = vm.reconfigVM_Task(vmSpec);\nSystem.getModule(\"com.vmware.library.vc.basic\").vim3WaitTaskEnd(vmTask, false, 1);\n",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "resourceId",
+                        "type": "string",
+                        "export-name": "resourceId"
+                    },
+                    {
+                        "name": "note",
+                        "type": "string",
+                        "export-name": "note"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 60.0,
+                "x": 220.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "263b3d88-b5f9-4e64-92ea-8fcd76c8d6bc",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

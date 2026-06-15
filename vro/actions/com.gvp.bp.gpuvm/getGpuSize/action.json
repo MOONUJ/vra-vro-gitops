@@ -1,0 +1,51 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/cb6afb8a-4048-4eff-87a9-5d0c2be03e42/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getGpuSize/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/cb6afb8a-4048-4eff-87a9-5d0c2be03e42/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/cb6afb8a-4048-4eff-87a9-5d0c2be03e42/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "cb6afb8a-4048-4eff-87a9-5d0c2be03e42",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "gpuModel"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "regionLink"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "projectId"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "category"
+        }
+    ],
+    "output-type": "Array/string",
+    "name": "getGpuSize",
+    "module": "com.gvp.bp.gpuvm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.gpuvm/getGpuSize",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

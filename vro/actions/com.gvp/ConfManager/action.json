@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/647ddbfd-a194-4ec0-bf49-b4ffa0a32a69/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp/ConfManager/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/647ddbfd-a194-4ec0-bf49-b4ffa0a32a69/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/647ddbfd-a194-4ec0-bf49-b4ffa0a32a69/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "647ddbfd-a194-4ec0-bf49-b4ffa0a32a69",
+    "output-type": "Properties",
+    "name": "ConfManager",
+    "module": "com.gvp",
+    "version": "0.0.1",
+    "fqn": "com.gvp/ConfManager",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

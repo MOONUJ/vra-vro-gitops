@@ -1,0 +1,46 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/bcf7d71f-7eb3-4a67-9f8a-bb8ae56d9b5c/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getVsphereClusters/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/bcf7d71f-7eb3-4a67-9f8a-bb8ae56d9b5c/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/bcf7d71f-7eb3-4a67-9f8a-bb8ae56d9b5c/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "bcf7d71f-7eb3-4a67-9f8a-bb8ae56d9b5c",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "cloudZoneLink"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "gpuModel"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "profile"
+        }
+    ],
+    "output-type": "Array/string",
+    "name": "getVsphereClusters",
+    "module": "com.gvp.bp.gpuvm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.gpuvm/getVsphereClusters",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

@@ -1,0 +1,1 @@
+var aa = System.getModule("com.gvp").AaManager(true);

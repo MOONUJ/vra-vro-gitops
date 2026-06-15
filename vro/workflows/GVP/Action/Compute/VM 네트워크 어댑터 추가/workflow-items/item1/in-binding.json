@@ -1,0 +1,24 @@
+{
+    "bind": [
+        {
+            "name": "resourceId",
+            "type": "string",
+            "export-name": "resourceId"
+        },
+        {
+            "name": "segment",
+            "type": "string",
+            "export-name": "segment"
+        },
+        {
+            "name": "segmentAddress",
+            "type": "string",
+            "export-name": "segmentAddress"
+        },
+        {
+            "name": "segmentAddressType",
+            "type": "string",
+            "export-name": "segmentAddressType"
+        }
+    ]
+}

@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/c6e06764-c581-4418-be09-e294b5615f93/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.prj/getK8sZones/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/c6e06764-c581-4418-be09-e294b5615f93/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/c6e06764-c581-4418-be09-e294b5615f93/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "c6e06764-c581-4418-be09-e294b5615f93",
+    "output-type": "Array/Any",
+    "name": "getK8sZones",
+    "module": "com.gvp.bp.prj",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.prj/getK8sZones",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

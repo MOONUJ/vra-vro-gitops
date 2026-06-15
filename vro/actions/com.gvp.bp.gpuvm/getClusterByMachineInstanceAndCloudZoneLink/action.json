@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/1911fafa-9703-485f-93d7-fa3f8421dc13/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getClusterByMachineInstanceAndCloudZoneLink/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/1911fafa-9703-485f-93d7-fa3f8421dc13/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/1911fafa-9703-485f-93d7-fa3f8421dc13/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "1911fafa-9703-485f-93d7-fa3f8421dc13",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "machineInstance"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "cloudZoneLink"
+        }
+    ],
+    "output-type": "Array/string",
+    "name": "getClusterByMachineInstanceAndCloudZoneLink",
+    "module": "com.gvp.bp.gpuvm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.gpuvm/getClusterByMachineInstanceAndCloudZoneLink",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

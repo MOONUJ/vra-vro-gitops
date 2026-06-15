@@ -1,0 +1,58 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/inventory/System/Workflows/GVP/Package/",
+                "rel": "up"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/executions/",
+                "rel": "executions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/presentation/",
+                "rel": "presentation"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/tasks/",
+                "rel": "tasks"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/icon/",
+                "rel": "icon"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/schema/",
+                "rel": "schema"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/content/",
+                "rel": "content"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/interactions/",
+                "rel": "interactions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/d70617ca-fa22-4b8a-8b5f-5f1dba7202e6/validate/",
+                "rel": "validate"
+            }
+        ]
+    },
+    "id": "d70617ca-fa22-4b8a-8b5f-5f1dba7202e6",
+    "customized-icon": false,
+    "name": "Backup Value Pack",
+    "version": "1.0.0",
+    "category-id": "469280199e38cae0019e38e919400da7",
+    "input-parameters": [
+        {
+            "type": "string",
+            "name": "projectId"
+        }
+    ]
+}

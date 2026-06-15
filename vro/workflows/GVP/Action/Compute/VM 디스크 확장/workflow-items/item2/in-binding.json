@@ -1,0 +1,14 @@
+{
+    "bind": [
+        {
+            "name": "resourceId",
+            "type": "string",
+            "export-name": "resourceId"
+        },
+        {
+            "name": "diskProperties",
+            "type": "Array/CompositeType(name:string,size:number,bootDisk:boolean):diskInfo",
+            "export-name": "diskProperties"
+        }
+    ]
+}

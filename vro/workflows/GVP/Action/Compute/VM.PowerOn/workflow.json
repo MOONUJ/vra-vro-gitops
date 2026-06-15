@@ -1,0 +1,70 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/inventory/System/Workflows/GVP/Action/Compute/",
+                "rel": "up"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/executions/",
+                "rel": "executions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/presentation/",
+                "rel": "presentation"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/tasks/",
+                "rel": "tasks"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/icon/",
+                "rel": "icon"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/schema/",
+                "rel": "schema"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/content/",
+                "rel": "content"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/interactions/",
+                "rel": "interactions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/6ce35348-0d51-4701-b2e2-96b188a9f933/validate/",
+                "rel": "validate"
+            }
+        ]
+    },
+    "id": "6ce35348-0d51-4701-b2e2-96b188a9f933",
+    "customized-icon": false,
+    "name": "VM.PowerOn",
+    "version": "0.0.0",
+    "category-id": "469280199e38cae0019e38e915500d1a",
+    "input-parameters": [
+        {
+            "type": "string",
+            "name": "_metadata_main_catalog"
+        },
+        {
+            "type": "string",
+            "name": "_metadata_catalog"
+        },
+        {
+            "type": "Array/string",
+            "name": "resourceId"
+        },
+        {
+            "type": "string",
+            "name": "requestMessage"
+        }
+    ]
+}

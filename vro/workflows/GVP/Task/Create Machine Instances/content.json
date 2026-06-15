@@ -1,0 +1,80 @@
+{
+    "display-name": "Create Machine Instances",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "machineInstance",
+                "type": "Array/CompositeType(name:string,cpu:number,memory:number,gpuModel:string,gpuSize:string,gpuProfile:string,deviceCount:number,vcsa_cluster:Array/string):gpuMachineInstance"
+            }
+        ]
+    },
+    "attrib": [
+        {
+            "value": {
+                "string": {
+                    "value": "GVP/Instance"
+                }
+            },
+            "type": "string",
+            "name": "configurationPath"
+        }
+    ],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 780.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "for each(var instance in machineInstance){\n    var config = Server.createConfigurationElement(configurationPath,instance.name);\n    config.setAttributeWithKey(\"cpu\",Number(instance.cpu), String(\"number\"));\n    config.setAttributeWithKey(\"memory\",Number(instance.memory), String(\"number\"));\n    config.setAttributeWithKey(\"gpuModel\",String(instance.gpuModel), String(\"string\"));\n    config.setAttributeWithKey(\"gpuSize\",String(instance.gpuSize), String(\"string\"));\n    config.setAttributeWithKey(\"gpuProfile\",String(instance.gpuProfile), String(\"string\"));\n    config.setAttributeWithKey(\"deviceCount\",String(instance.deviceCount), String(\"number\"));\n    config.setAttributeWithKey(\"vcsa_cluster\",String(instance.vcsa_cluster), String(\"Array/string\"));\n}",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "configurationPath",
+                        "type": "string",
+                        "export-name": "configurationPath"
+                    },
+                    {
+                        "name": "machineInstance",
+                        "type": "Array/CompositeType(name:string,cpu:number,memory:number,gpuModel:string,gpuSize:string,gpuProfile:string,deviceCount:number,vcsa_cluster:Array/string):gpuMachineInstance",
+                        "export-name": "machineInstance"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 60.0,
+                "x": 340.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

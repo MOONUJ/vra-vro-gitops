@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/6be906b7-e4f8-4e44-a46c-eb6038011d71/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp/AaManager/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/6be906b7-e4f8-4e44-a46c-eb6038011d71/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/6be906b7-e4f8-4e44-a46c-eb6038011d71/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "6be906b7-e4f8-4e44-a46c-eb6038011d71",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "boolean",
+            "name": "admin"
+        }
+    ],
+    "output-type": "Properties",
+    "name": "AaManager",
+    "module": "com.gvp",
+    "version": "0.0.1",
+    "fqn": "com.gvp/AaManager",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

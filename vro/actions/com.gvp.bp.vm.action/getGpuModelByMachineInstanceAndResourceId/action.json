@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/32b3d0e8-957b-4c24-a71a-f023e008b28b/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm.action/getGpuModelByMachineInstanceAndResourceId/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/32b3d0e8-957b-4c24-a71a-f023e008b28b/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/32b3d0e8-957b-4c24-a71a-f023e008b28b/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "32b3d0e8-957b-4c24-a71a-f023e008b28b",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "machineInstance"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "resourceId"
+        }
+    ],
+    "output-type": "string",
+    "name": "getGpuModelByMachineInstanceAndResourceId",
+    "module": "com.gvp.bp.vm.action",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm.action/getGpuModelByMachineInstanceAndResourceId",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

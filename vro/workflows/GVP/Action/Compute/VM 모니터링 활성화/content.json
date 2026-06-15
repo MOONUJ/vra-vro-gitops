@@ -1,0 +1,169 @@
+{
+    "display-name": "VM 모니터링 활성화",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "_metadata_main_catalog",
+                "type": "string"
+            },
+            {
+                "name": "_metadata_catalog",
+                "type": "string"
+            },
+            {
+                "name": "resourceId",
+                "type": "string"
+            },
+            {
+                "name": "requestMessage",
+                "type": "string"
+            },
+            {
+                "name": "adminUsername",
+                "type": "string"
+            },
+            {
+                "name": "adminPassword",
+                "type": "SecureString"
+            }
+        ]
+    },
+    "attrib": [
+        {
+            "value": {
+                "sdk-object": {
+                    "type": "VC:VirtualMachine",
+                    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/catalog/VC/VirtualMachine/pclmvce01.p-cloud.net%252Cid%253Avm-91/",
+                    "id": "pclmvce01.p-cloud.net,id:vm-91"
+                }
+            },
+            "type": "VC:VirtualMachine",
+            "name": "portalMachine"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "cloviradmin"
+                }
+            },
+            "type": "string",
+            "name": "portalUsername"
+        },
+        {
+            "value": {
+                "secure-string": {
+                    "value": "8BJ56W4DM77J61J72K65S31J21S25965ACKF60EFCCZD3F558CW7021180RB78EBC6P9A37A10K4060D77U211FDA4WE32DF28W36E1E34NDE74442G679FBEAKC7A96BCW6D45AE4YC1A663AH4C3F84T2A8C1DENB277692H2F38414T7E727CM37E4B86PE053ADDUB404093KC4FBF9FP",
+                    "isPlainText": false
+                }
+            },
+            "type": "SecureString",
+            "name": "portalPassword"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "/home/cloviradmin/telegraf-linux.tar.gz"
+                }
+            },
+            "type": "string",
+            "name": "filePath"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "10.123.11.145"
+                }
+            },
+            "type": "string",
+            "name": "cloudProxy"
+        }
+    ],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 380.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var aa = System.getModule(\"com.gvp\").AaManager(true);\nvar machine = aa.get(\"/iaas/api/machines/\" + resourceId);\nvar computeName = machine.name;\nvar cloudAccount = aa.get(\"/iaas/api/cloud-accounts/\" + machine.cloudAccountIds[0]);\nvar machineVcName = cloudAccount.cloudAccountProperties.hostName.split(\".\")[0];\nvar vm = VcPlugin.getAllVirtualMachines(null, \"xpath:name='\" + computeName + \"'\")[0];\nvar guestOperationsManager = vm.sdkConnection.guestOperationsManager;\nvar guestAuth = new VcNamePasswordAuthentication();\nguestAuth.username = adminUsername;\nguestAuth.password = adminPassword;\n\ntry {\n    System.log(\"Check Account Authenticate\");\n    guestOperationsManager.authManager.validateCredentialsInGuest(vm, guestAuth);\n} catch (e){\n    System.log(e);\n    throw \"Failed to authenticate with the Virtual Machine\";\n}\n\nSystem.log(\"Check Account Permission\");\nvar execScripts = System.getModule(\"com.gvp\").execScripts;\nvar vcConf = System.getModule(\"com.gvp\").ConfManager().load(\"GVP/Endpoint/\" + machineVcName);\nvar scripts = '#!/bin/bash\\n';\nscripts += 'if sudo -n true 2>/dev/null; then\\n';\nscripts += '  sudo mkdir /telegraf\\n';\nscripts += '  sudo chown ' + adminUsername +' /telegraf\\n';\nscripts += '  echo \"0\"\\n';\nscripts += 'else\\n';\nscripts += '  echo \"126\"\\n';\nscripts += 'fi';\n\ntry{\n    var result = execScripts(vcConf.hostname, vcConf.username, vcConf.password, computeName, adminUsername, adminPassword, scripts);\n} catch (e) {\n    System.log(e);\n    throw e;\n}\nSystem.log(result);\nif(result == 126){\n    throw \"User doesn't have sudo permission\";\n}\n\nvar vcoDir = System.getTempDirectory();\nvar fileName = filePath.split(\"/\").filter( function(item){ return item.indexOf(\"tar.gz\") >= 0})[0]\nvar vcoPath = vcoDir +  \"/\" + fileName;\nvar srcFile = new File(vcoPath);\nvar guestFilePath = \"/telegraf/\" + fileName;\nvar overwrite = true;\nvar fileManager = guestOperationsManager.fileManager;\nvar attr = new VcGuestFileAttributes();\n\nif(srcFile.exists == false){\n    try{\n        System.log(\"get package file from portal VM\")\n        var host = portalMachine.sdkConnection;\n\n        var portalGuestOperationsManager = host.guestOperationsManager;\n        var portalGuestAuth = new VcNamePasswordAuthentication();\n        portalGuestAuth.username = portalUsername;\n        portalGuestAuth.password = portalPassword;\n\n        var portalFileManager = portalGuestOperationsManager.fileManager;\n        result = false;\n        var ftInfo = portalFileManager.initiateFileTransferFromGuest(portalMachine , portalGuestAuth ,filePath);\n        result = portalFileManager.downloadFile(vcoPath, ftInfo);\n        srcFile = new File(vcoPath);\n    } catch(e){\n        throw e;\n    }\n\n}\n\ntry{\n    System.log(\"Upload package file to target VM\")\n    var uri = fileManager.initiateFileTransferToGuest(vm , guestAuth ,guestFilePath, attr, srcFile.length, overwrite);\n    var filePutResult = fileManager.putFile(vcoPath, uri);\n} catch (e) {\n    throw e;\n}\n\nvar uuid = System.nextUUID();\nvar installScript = '#!/bin/bash\\n';\ninstallScript += 'FILE_PATH=\"' + guestFilePath +'\"\\n';\ninstallScript += 'tar -zxvf \"$FILE_PATH\" -C /telegraf\\n';\ninstallScript += 'chmod +x \"/telegraf/install_telegraf.sh\"\\n';\ninstallScript += 'sudo bash -c \"/telegraf/install_telegraf.sh ' + cloudProxy + ' ' + computeName + ' root ' + uuid + '\"\\n';\n\n\n\ntry{\n    System.log(\"start install\")\n    var result = execScripts(vcConf.hostname, vcConf.username, vcConf.password, computeName, adminUsername, adminPassword, installScript);\n    System.log(result);\n} catch (e) {\n    System.log(e);\n    throw e;\n}\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "portalMachine",
+                        "type": "VC:VirtualMachine",
+                        "export-name": "portalMachine"
+                    },
+                    {
+                        "name": "portalUsername",
+                        "type": "string",
+                        "export-name": "portalUsername"
+                    },
+                    {
+                        "name": "portalPassword",
+                        "type": "SecureString",
+                        "export-name": "portalPassword"
+                    },
+                    {
+                        "name": "filePath",
+                        "type": "string",
+                        "export-name": "filePath"
+                    },
+                    {
+                        "name": "cloudProxy",
+                        "type": "string",
+                        "export-name": "cloudProxy"
+                    },
+                    {
+                        "name": "resourceId",
+                        "type": "string",
+                        "export-name": "resourceId"
+                    },
+                    {
+                        "name": "adminPassword",
+                        "type": "SecureString",
+                        "export-name": "adminPassword"
+                    },
+                    {
+                        "name": "adminUsername",
+                        "type": "string",
+                        "export-name": "adminUsername"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 70.0,
+                "x": 180.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "c9be76f6-5627-4c39-9b43-44aac01ef4d5",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

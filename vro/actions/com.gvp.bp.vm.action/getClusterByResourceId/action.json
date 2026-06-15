@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/ab0865b2-82f7-4984-a896-cdeca8edfa42/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm.action/getClusterByResourceId/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/ab0865b2-82f7-4984-a896-cdeca8edfa42/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/ab0865b2-82f7-4984-a896-cdeca8edfa42/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "ab0865b2-82f7-4984-a896-cdeca8edfa42",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "resourceId"
+        }
+    ],
+    "output-type": "string",
+    "name": "getClusterByResourceId",
+    "module": "com.gvp.bp.vm.action",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm.action/getClusterByResourceId",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

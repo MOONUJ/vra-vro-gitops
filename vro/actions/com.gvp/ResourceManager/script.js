@@ -1,0 +1,48 @@
+return {
+    loadJson: function (path) {
+        var data = this.load(path)
+        return JSON.parse(data.content);
+    },
+    load: function (path) {
+        try {
+            var category = Server.getResourceElementCategoryWithPath(path);
+            if (category == null) { throw "could not find path"; }
+            var element = category.allResourceElements[0];
+            if (element == null) { throw "could not find data"; }
+            return element.getContentAsMimeAttachment();
+        } catch (e) {
+            throw "Error [ResourceManager.load(" + path + ")] : " + e;
+        }
+    },
+    saveJson: function (path, data) {
+        this.save(path, JSON.stringify(data, null, 2), "application/json");
+    },
+    save: function (path, data, mimeType) {
+        LockingSystem.lockAndWait(path, "ResourceManager");
+        try {
+            var element;
+            try { element = Server.createResourceElement(path, "data"); }
+            catch (e) { element = Server.getResourceElementCategoryWithPath(path).allResourceElements[0]; }
+            var fd = System.createTempFile();
+            fd.write(data);
+            element.setContentFromFile(fd.path, mimeType);
+        } catch (e) {
+            LockingSystem.unlock(path, "ResourceManager");
+            throw "Error [ResourceManager.save(" + path + ")] : " + e;
+        }
+        LockingSystem.unlock(path, "ResourceManager");
+    },
+    delete: function (path) {
+        LockingSystem.lockAndWait(path, "ResourceManager");
+        try {
+            var category = Server.getResourceElementCategoryWithPath(path);
+            var element = category.allResourceElements[0];
+            Server.removeResourceElement(element);
+        } catch (e) {
+            LockingSystem.unlock(path, "ResourceManager");
+            throw "Error [ResourceManager.delete(" + path + ")] : " + e;
+        }
+        LockingSystem.unlock(path, "ResourceManager");
+        return true;
+    }
+}

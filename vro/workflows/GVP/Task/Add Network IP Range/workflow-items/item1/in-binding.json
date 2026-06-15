@@ -1,0 +1,24 @@
+{
+    "bind": [
+        {
+            "name": "nsxManager",
+            "type": "string",
+            "export-name": "nsxManager"
+        },
+        {
+            "name": "network",
+            "type": "string",
+            "export-name": "network"
+        },
+        {
+            "name": "startIp",
+            "type": "string",
+            "export-name": "startIp"
+        },
+        {
+            "name": "endIp",
+            "type": "string",
+            "export-name": "endIp"
+        }
+    ]
+}

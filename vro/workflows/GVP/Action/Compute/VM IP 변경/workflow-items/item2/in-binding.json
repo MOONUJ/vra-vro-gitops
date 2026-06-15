@@ -1,0 +1,32 @@
+{
+    "bind": [
+        {
+            "name": "interfaceLink",
+            "type": "string",
+            "export-name": "interfaceLink"
+        },
+        {
+            "name": "newIpAddress",
+            "type": "string",
+            "export-name": "newIpAddress"
+        },
+        {
+            "name": "releaseMode",
+            "type": "string",
+            "export-name": "releaseMode"
+        },
+        {
+            "name": "resourceId",
+            "type": "string",
+            "export-name": "resourceId"
+        },
+        {
+            "name": "adminUsername",
+            "type": "string"
+        },
+        {
+            "name": "adminPassword",
+            "type": "SecureString"
+        }
+    ]
+}

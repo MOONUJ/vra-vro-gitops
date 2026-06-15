@@ -1,0 +1,53 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/b58ab165-78bb-42c2-872d-a9870ca09d77/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp/execPyUrl/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/b58ab165-78bb-42c2-872d-a9870ca09d77/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/b58ab165-78bb-42c2-872d-a9870ca09d77/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "b58ab165-78bb-42c2-872d-a9870ca09d77",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "method"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "url"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "data"
+        },
+        {
+            "description": "",
+            "type": "Properties",
+            "name": "headers"
+        }
+    ],
+    "output-type": "string",
+    "name": "execPyUrl",
+    "module": "com.gvp",
+    "version": "0.0.1",
+    "fqn": "com.gvp/execPyUrl",
+    "script": "",
+    "bundleHasContent": false,
+    "runtime": "python:3.10",
+    "runtimeMemoryLimit": 128000000,
+    "runtimeTimeout": 0,
+    "validationMessage": "MISSING_RUNTIME"
+}

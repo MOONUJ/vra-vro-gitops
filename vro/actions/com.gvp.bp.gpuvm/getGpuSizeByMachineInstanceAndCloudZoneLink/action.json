@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/65693ccf-1e75-4461-aad3-8111605c5699/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getGpuSizeByMachineInstanceAndCloudZoneLink/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/65693ccf-1e75-4461-aad3-8111605c5699/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/65693ccf-1e75-4461-aad3-8111605c5699/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "65693ccf-1e75-4461-aad3-8111605c5699",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "machineInstance"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "cloudZoneLink"
+        }
+    ],
+    "output-type": "string",
+    "name": "getGpuSizeByMachineInstanceAndCloudZoneLink",
+    "module": "com.gvp.bp.gpuvm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.gpuvm/getGpuSizeByMachineInstanceAndCloudZoneLink",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

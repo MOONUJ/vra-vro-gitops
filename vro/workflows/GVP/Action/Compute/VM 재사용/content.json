@@ -1,0 +1,86 @@
+{
+    "display-name": "VM 재사용",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "_metadata_main_catalog",
+                "type": "string"
+            },
+            {
+                "name": "_metadata_catalog",
+                "type": "string"
+            },
+            {
+                "name": "deploymentId",
+                "type": "string"
+            },
+            {
+                "name": "resourceId",
+                "type": "string"
+            },
+            {
+                "name": "requestMessage",
+                "type": "string"
+            }
+        ]
+    },
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 400.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var aa = System.getModule(\"com.gvp\").AaManager(true);\nvar resourcesLink = \"/deployment/api/deployments/\" + deploymentId + \"/resources/\" + resourceId;\nvar requestsLink = \"/deployment/api/resources/\" + resourceId + \"/requests\";\nvar data = {\n  actionId: \"Cloud.vSphere.Machine.PowerOn\",\n  reason: \"VM 재사용\",\n  inputs: {}\n};\nvar computeLink = aa.get(resourcesLink);\nvar requests = aa.post(requestsLink, data);\nvar endpointId = computeLink.properties.endpointId\nvar vmName = computeLink.properties.name;\nvar folderName = computeLink.properties.folderName;\nvar endpointLink = \"/resources/endpoints/\" + endpointId;\nvar endpointName = aa.getUerp(endpointLink).endpointProperties.hostName.split(\".\")[0];\nvar vcConf = System.getModule(\"com.gvp\").ConfManager().load(\"BVP/Endpoint/\" + endpointName);\nvar vmDirectoryMoveinvCenter = System.getModule(\"com.gvp\").vmDirectoryMoveinvCenter;\n\nvmDirectoryMoveinvCenter(vcConf.hostname, vcConf.username, vcConf.password, vmName, folderName);",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "deploymentId",
+                        "type": "string",
+                        "export-name": "deploymentId"
+                    },
+                    {
+                        "name": "resourceId",
+                        "type": "string",
+                        "export-name": "resourceId"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 60.0,
+                "x": 200.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "ed52f561-8cc0-4c38-ad20-98c4e24afaeb",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

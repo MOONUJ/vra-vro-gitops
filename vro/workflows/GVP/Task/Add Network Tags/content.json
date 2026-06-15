@@ -1,0 +1,121 @@
+{
+    "display-name": "Add Network Tags",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "networks",
+                "type": "Array/string"
+            },
+            {
+                "name": "orgCode",
+                "type": "string"
+            },
+            {
+                "name": "nsxManager",
+                "type": "string"
+            }
+        ]
+    },
+    "attrib": [
+        {
+            "value": {
+                "string": {
+                    "value": "org"
+                }
+            },
+            "type": "string",
+            "name": "orgCategory"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "vpcSegId"
+                }
+            },
+            "type": "string",
+            "name": "vpcSegCategory"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "segType"
+                }
+            },
+            "type": "string",
+            "name": "segTypeCategory"
+        }
+    ],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 440.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var aa = System.getModule(\"com.gvp\").AaManager(true);\n\nfor each(var network in networks){\n    var fabric = aa.get(\"/iaas/api/fabric-networks/\" + network);\n    var segType = aa.get(\"/iaas/api/network-domains/\" + fabric.networkDomainId).customProperties.__transportZoneTrafficType == \"VLAN_BACKED\"? \"bridge\": \"overlay\";\n    var tags = fabric.tags;\n    if(tags){\n        var vpcSegTag = tags.filter(function(item){ return item.key == vpcSegCategory});\n        var segTypeTag = tags.filter(function(item){ return item.key == segTypeCategory});\n        var orgTag = tags.filter(function(item){ return item.key == orgCategory && item.value == orgCode});\n        if(vpcSegTag == 0){\n            tags.push({\n                \"key\": vpcSegCategory,\n                \"value\": fabric.name\n            })\n        }\n        if(segTypeTag == 0){\n            tags.push({\n                \"key\": segTypeCategory,\n                \"value\": segType\n            })\n        }\n        if(orgTag == 0){\n            tags.push({\n                \"key\": orgCategory,\n                \"value\": orgCode\n            })\n        }\n    } else {\n        var tags = [\n            {\n                \"key\": orgCategory,\n                \"value\": orgCode\n            },\n            {\n                \"key\": vpcSegCategory,\n                \"value\": fabric.name\n            },\n            {\n                \"key\": segTypeCategory,\n                \"value\": segType\n            }\n        ]\n    }\n\n\n    aa.patch(\"/iaas/api/fabric-networks/\" + network, {\n        \"tags\": tags\n    })\n}",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "networks",
+                        "type": "Array/string",
+                        "export-name": "networks"
+                    },
+                    {
+                        "name": "orgCategory",
+                        "type": "string",
+                        "export-name": "orgCategory"
+                    },
+                    {
+                        "name": "orgCode",
+                        "type": "string",
+                        "export-name": "orgCode"
+                    },
+                    {
+                        "name": "segTypeCategory",
+                        "type": "string",
+                        "export-name": "segTypeCategory"
+                    },
+                    {
+                        "name": "vpcSegCategory",
+                        "type": "string",
+                        "export-name": "vpcSegCategory"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 70.0,
+                "x": 200.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "5ae1c727-c8e8-4e25-bccf-0c00ad07d989",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/3a84583f-0169-4d96-b57a-0e4396490f7c/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.packages/getBackupList/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/3a84583f-0169-4d96-b57a-0e4396490f7c/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/3a84583f-0169-4d96-b57a-0e4396490f7c/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "3a84583f-0169-4d96-b57a-0e4396490f7c",
+    "output-type": "Array/string",
+    "name": "getBackupList",
+    "module": "com.gvp.packages",
+    "version": "0.0.0",
+    "fqn": "com.gvp.packages/getBackupList",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

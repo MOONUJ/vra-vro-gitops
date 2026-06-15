@@ -1,0 +1,42 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/539eec60-295f-406c-8bbe-7cc1d43da40a/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm/getDefaultIpAddressesBySubnetLink/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/539eec60-295f-406c-8bbe-7cc1d43da40a/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/539eec60-295f-406c-8bbe-7cc1d43da40a/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "539eec60-295f-406c-8bbe-7cc1d43da40a",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "subnetLink"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "addressType"
+        }
+    ],
+    "output-type": "string",
+    "name": "getDefaultIpAddressesBySubnetLink",
+    "module": "com.gvp.bp.vm",
+    "description": "BP:Virtual Machine",
+    "version": "0.1.1",
+    "fqn": "com.gvp.bp.vm/getDefaultIpAddressesBySubnetLink",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

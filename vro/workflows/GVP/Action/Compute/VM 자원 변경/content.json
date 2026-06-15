@@ -1,0 +1,104 @@
+{
+    "display-name": "VM 자원 변경",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "_metadata_main_catalog",
+                "type": "string"
+            },
+            {
+                "name": "_metadata_catalog",
+                "type": "string"
+            },
+            {
+                "name": "resourceId",
+                "type": "string"
+            },
+            {
+                "name": "requestMessage",
+                "type": "string"
+            },
+            {
+                "name": "cpuCount",
+                "type": "number"
+            },
+            {
+                "name": "memoryCount",
+                "type": "number"
+            },
+            {
+                "name": "coresPerSocket",
+                "type": "number"
+            }
+        ]
+    },
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 380.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "/**\n * ============================================================================\n * VM Resize Workflow - CPU/Memory Only\n * ============================================================================\n * \n * Input Parameters:\n * - resourceId (string, required): VM resource identifier\n * - flavor (string, required) : Target Flavor (CPU, Memory, Core)\n * - cpuCount (number, optional): Target CPU count -> no\n * - memoryCount (number, optional): Target memory size in GB (automatically converted to MB) -> no\n * \n * Outputs:\n * - resizeResult (boolean): Success/failure status\n * - resizeMessage (string): Result message\n * \n * Features:\n * - Automatic power state management by vRA (shutdown → resize → power on)\n * - Enhanced error handling for API calls\n * - Detailed progress logging with status descriptions\n * - Real-time elapsed time tracking\n * - Request ID not found handling\n * - customProperties null check\n * - Network error handling\n * - User-friendly status messages\n * \n * Note:\n * - If VM is powered on, vRA will automatically manage power state\n * - Expected time: 1-2 min (powered off) or 3-7 min (powered on)\n * ============================================================================\n */\n\n(function() {\n    'use strict';\n    \n    var CONFIG = {\n        ACTION_RESIZE: \"Cloud.vSphere.Machine.Resize\",\n        SLEEP_INTERVAL: 10000,\n        MAX_RETRIES: 10,\n        STATUS_SUCCESS: \"SUCCESSFUL\",\n        STATUS_FAILED: \"FAILED\"\n    };\n    \n    function logInfo(message) {\n        System.log(\"[VM-RESIZE] \" + message);\n    }\n    \n    function logWarn(message) {\n        System.warn(\"[VM-RESIZE] \" + message);\n    }\n    \n    function logError(message) {\n        System.error(\"[VM-RESIZE] \" + message);\n    }\n    \n    function repeatString(str, count) {\n        var result = \"\";\n        for (var i = 0; i < count; i++) {\n            result += str;\n        }\n        return result;\n    }\n    \n    function trimString(str) {\n        if (typeof str !== 'string') return str;\n        return str.replace(/^\\s+|\\s+$/g, '');\n    }\n    \n    function isArray(obj) {\n        return Object.prototype.toString.call(obj) === '[object Array]';\n    }\n    \n    function logSection(title) {\n        var separator = repeatString(\"=\", 60);\n        System.log(separator);\n        System.log(\"  \" + title);\n        System.log(separator);\n    }\n    \n    \n    function validateInputs() {\n        var errors = [];\n        \n        if (!resourceId || trimString(resourceId) === \"\") {\n            errors.push(\"resourceId is required\");\n        }\n        \n        /*\n        if (!flavor || trimString(flavor) === \"\") {\n            errors.push(\"flavor is required\");\n        }\n        */\n        \n        \n        if (cpuCount !== undefined && cpuCount !== null) {\n            if (typeof cpuCount !== 'number' || cpuCount <= 0) {\n                errors.push(\"cpuCount must be a positive number\");\n            }\n        }\n        \n        if (memoryCount !== undefined && memoryCount !== null) {\n            if (typeof memoryCount !== 'number' || memoryCount <= 0) {\n                errors.push(\"memoryCount must be a positive number\");\n            }\n        }\n        \n        \n        \n        if (errors.length > 0) {\n            throw new Error(\"Input validation failed:\\n  - \" + errors.join(\"\\n  - \"));\n        }\n        \n        logInfo(\"Input validation passed\");\n    }\n    \n    function waitForCompletion(requestId, aa) {\n        var retries = 0;\n        \n        logInfo(\"Waiting for resize to complete...\");\n        \n        while (retries < CONFIG.MAX_RETRIES) {\n            try {\n                var response = aa.get(\"/deployment/api/resources/\" + resourceId + \"/requests\");\n                var requests = response.content;\n                \n                for (var i = 0; i < requests.length; i++) {\n                    if (requests[i].id === requestId) {\n                        var status = requests[i].status;\n                        \n                        if (status === CONFIG.STATUS_SUCCESS) {\n                            logInfo(\"✓ Resize completed successfully\");\n                            return;\n                        }\n                        \n                        if (status === CONFIG.STATUS_FAILED) {\n                            throw new Error(\"Resize failed: \" + (requests[i].message || \"Unknown error\"));\n                        }\n                        \n                        logInfo(\"⟳ Status: \" + status);\n                        break;\n                    }\n                }\n                \n            } catch (error) {\n                if (error.message.indexOf(\"Resize failed\") === 0) {\n                    throw error;\n                }\n                logWarn(\"API error: \" + error.message);\n            }\n            \n            System.sleep(CONFIG.SLEEP_INTERVAL);\n            retries++;\n        }\n        \n        throw new Error(\"Request timeout\");\n    }\n    \n    function main() {\n        logSection(\"VM Resize Workflow - START\");\n        \n        try {\n            // Validate inputs\n            validateInputs();\n            \n            \n            // Skip if no resize parameters provided\n            if (cpuCount === undefined && memoryCount === undefined && coresPerSocket === undefined) {\n                resizeResult = true;\n                resizeMessage = \"VM resize skipped: No CPU/Memory/CoresPerSocket parameters provided\";\n                logInfo(resizeMessage);\n                logSection(\"VM Resize Workflow - COMPLETED (No changes)\");\n                return;\n            }\n            \n            \n            \n            // Initialize AA client\n            logInfo(\"Initializing Aria Automation client...\");\n            var aa;\n            try {\n                aa = System.getModule(\"com.gvp\").AaManager(true);\n            } catch (error) {\n                throw new Error(\"Failed to initialize AA client: \" + error.message);\n            }\n            \n            // Get machine information\n            logInfo(\"Retrieving machine information for: \" + resourceId);\n            var machine;\n            try {\n                machine = aa.get(\"/iaas/api/machines/\" + resourceId);\n            } catch (error) {\n                throw new Error(\"Failed to retrieve machine: \" + error.message);\n            }\n            \n            if (!machine) {\n                throw new Error(\"Machine not found: \" + resourceId);\n            }\n            \n            logInfo(\"Machine found: \" + machine.name);\n            \n            // Validate customProperties\n            if (!machine.customProperties) {\n                throw new Error(\"Machine customProperties not found or invalid\");\n            }\n            \n            // Get current values\n            var currentCpu = parseInt(machine.customProperties.cpuCount) || 0;\n            var currentMemory = parseInt(machine.customProperties.memoryGB) || 0;\n            \n            logInfo(\"Current configuration - CPU: \" + currentCpu + \", Memory: \" + currentMemory + \"GB\");\n            \n            var cloudAccount = aa.get(\"/iaas/api/cloud-accounts/\" + machine.cloudAccountIds[0])            \n            //var regionLink = cloudAccount._links.regions.hrefs[0];\n            //var flavorMapping = aa.get(\"/iaas/api/flavors?includeCores=true\").content.filter( function (item){ return item._links.region.href == regionLink })[0].mapping;\n            var targetCpu = cpuCount || currentCpu;\n            var targetMemory = memoryCount|| currentMemory;\n            var targetCoreCount = coresPerSocket;\n            /* no more use\n            var targetCpu = cpuCount || currentCpu;\n            var targetMemory = memoryCount || currentMemory;\n            */\n            \n            // Check if resize needed\n            if (targetCpu === currentCpu && targetMemory === currentMemory) {\n                resizeResult = true;\n                resizeMessage = \"VM resize skipped: Current values match target (CPU: \" + currentCpu + \", Memory: \" + currentMemory + \"GB)\";\n                logInfo(resizeMessage);\n                logSection(\"VM Resize Workflow - COMPLETED (No changes)\");\n                return;\n            }\n            \n            logInfo(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\n            logInfo(\"Resize Changes:\");\n            if (currentCpu !== targetCpu) {\n                logInfo(\"  • CPU: \" + currentCpu + \" → \" + targetCpu + \" cores (\" + (targetCpu > currentCpu ? \"+\" : \"\") + (targetCpu - currentCpu) + \")\");\n            }\n            if (currentMemory !== targetMemory) {\n                logInfo(\"  • Memory: \" + currentMemory + \"GB → \" + targetMemory + \"GB (\" + (targetMemory > currentMemory ? \"+\" : \"\") + (targetMemory - currentMemory) + \"GB)\");\n            }\n            logInfo(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\n            \n            // Submit resize request\n            logInfo(\"Submitting resize request...\");\n            var request = aa.post(\"/deployment/api/resources/\" + resourceId + \"/requests\", {\n                actionId: CONFIG.ACTION_RESIZE,\n                inputs: {\n                    cpuCount: targetCpu,\n                    totalMemoryMB: targetMemory * 1024,\n                    coreCount: targetCoreCount, // for onbording\n                    rebootMachine: true\n                    //totalMemoryMB: targetMemory * 1024  // GB → MB 자동 변환\n                }\n            });\n            \n            if (!request || !request.id) {\n                throw new Error(\"Invalid request response\");\n            }\n            \n            logInfo(\"✓ Request submitted - ID: \" + request.id);\n            \n            // Wait for completion\n            logInfo(\"\");\n            logInfo(\"Waiting for resize operation to complete...\");\n            waitForCompletion(request.id, aa);\n            \n            resizeResult = true;\n            resizeMessage = \"VM resize completed successfully (CPU: \" + targetCpu + \", Memory: \" + targetMemory + \"GB)\";\n            logInfo(\"✓ Resize completed successfully\");\n            logSection(\"VM Resize Workflow - COMPLETED\");\n            \n        } catch (error) {\n            resizeResult = false;\n            resizeMessage = \"VM resize failed: \" + error.message;\n            logError(resizeMessage);\n            logSection(\"VM Resize Workflow - FAILED\");\n            throw error;\n        }\n    }\n    \n    // Execute workflow\n    main();\n    \n})();\n",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "resourceId",
+                        "type": "string",
+                        "export-name": "resourceId"
+                    },
+                    {
+                        "name": "cpuCount",
+                        "type": "number",
+                        "export-name": "cpuCount"
+                    },
+                    {
+                        "name": "memoryCount",
+                        "type": "number",
+                        "export-name": "memoryCount"
+                    },
+                    {
+                        "name": "coresPerSocket",
+                        "type": "number",
+                        "export-name": "coresPerSocket"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 60.0,
+                "x": 200.0
+            },
+            "name": "item2",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item2",
+    "object-name": "workflow:name=generic",
+    "id": "f4264fae-ca2a-4380-97c6-b6e909df4a20",
+    "version": "0.0.2",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

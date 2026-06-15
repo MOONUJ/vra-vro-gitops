@@ -1,0 +1,103 @@
+{
+    "display-name": "자원 삭제",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "_metadata_main_catalog",
+                "type": "string"
+            },
+            {
+                "name": "_metadata_catalog",
+                "type": "string"
+            },
+            {
+                "name": "resourceType",
+                "type": "string"
+            },
+            {
+                "name": "resourceIds",
+                "type": "Array/string"
+            },
+            {
+                "name": "requestMessage",
+                "type": "string"
+            },
+            {
+                "name": "resourceId",
+                "type": "string"
+            },
+            {
+                "name": "_admin_project_name",
+                "type": "string"
+            },
+            {
+                "name": "_admin_project_uuid",
+                "type": "string"
+            }
+        ]
+    },
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 360.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "// Constants\nvar RESOURCE_TYPES = {\n    VSPHERE_MACHINE: \"Cloud.vSphere.Machine\",\n    CUSTOM_PROJECT: \"Custom.Project\",\n    VRO_WORKFLOW: \"vro.workflow\"\n};\n\nvar POLLING_CONFIG = {\n    MAX_ATTEMPTS: 20,\n    SLEEP_INTERVAL: 5000, // 5 seconds\n    VM_STATE_POWERED_ON: \"poweredOn\"\n};\n\n// Initialize\nvar aa = System.getModule(\"com.gvp\").AaManager(true);\nvar requestIds = [];\n\n// Main execution\ntry {\n    var resourcesToProcess = validateAndNormalizeInputs();\n    var deleteRequests = processResourcesByType(resourcesToProcess);\n    waitForAllRequestsToComplete(deleteRequests);\n    System.log(\"All resources deleted successfully\");\n} catch (error) {\n    System.error(\"Resource deletion failed: \" + error);\n    throw error;\n}\n\n/**\n * 입력값 검증 및 정규화\n */\nfunction validateAndNormalizeInputs() {\n    if (!resourceIds && !resourceId) {\n        throw \"Cannot Empty Resource Ids\";\n    }\n    if (!resourceType) {\n        throw \"Cannot Empty Resource Type\";\n    }\n\n    // 단일 resourceId를 배열로 변환하여 통일된 처리\n    if (resourceId) {\n        return [resourceId];\n    }\n    return resourceIds;\n}\n\n/**\n * 리소스 타입별 처리 분기\n */\nfunction processResourcesByType(resources) {\n    switch (resourceType) {\n        case RESOURCE_TYPES.VSPHERE_MACHINE:\n            return processVSphereMachines(resources);\n        case RESOURCE_TYPES.CUSTOM_PROJECT:\n            return processCustomProjects(resources);\n        default:\n            return processGenericResources(resources);\n    }\n}\n\n/**\n * vSphere Machine 리소스 처리\n */\nfunction processVSphereMachines(resources) {\n    var deleteRequests = [];\n    \n    for each (var resourceId in resources) {\n        try {\n            var machine = aa.get(\"/deployment/api/resources/\" + resourceId);\n            validateVMCanBeDeleted(machine);\n            \n            var deploymentId = machine.deploymentId;\n            var machineCount = countMachinesInDeployment(deploymentId);\n            var deleteRequest = deleteMachineOrDeployment(deploymentId, resourceId, machineCount);\n            \n            deleteRequests.push(deleteRequest.id);\n        } catch (error) {\n            System.error(\"Failed to process vSphere machine \" + resourceId + \": \" + error);\n            throw error;\n        }\n    }\n    \n    return deleteRequests;\n}\n\n/**\n * VM 삭제 가능 여부 검증\n */\nfunction validateVMCanBeDeleted(machine) {\n    var vm = VcPlugin.getAllVirtualMachines(null, \"xpath:name='\" + machine.name + \"'\")[0];\n    if (vm && vm.state === POLLING_CONFIG.VM_STATE_POWERED_ON) {\n        throw \"Cannot Delete VM. VM '\" + machine.name + \"' is Powered ON\";\n    }\n}\n\n/**\n * 배포에 포함된 Machine 개수 계산\n */\nfunction countMachinesInDeployment(deploymentId) {\n    var deploymentResources = aa.get(\"/deployment/api/deployments/\" + deploymentId + \"/resources\").content;\n    var count = 0;\n    \n    for each (var resource in deploymentResources) {\n        if (resource.type === RESOURCE_TYPES.VSPHERE_MACHINE) {\n            count++;\n        }\n    }\n    \n    return count;\n}\n\n/**\n * Machine 또는 전체 Deployment 삭제\n */\nfunction deleteMachineOrDeployment(deploymentId, resourceId, machineCount) {\n    if (machineCount >= 2) {\n        // 여러 머신이 있으면 해당 리소스만 삭제\n        return aa.delete(\"/deployment/api/deployments/\" + deploymentId + \"/resources/\" + resourceId);\n    } else {\n        // 단일 머신이면 전체 배포 삭제\n        return aa.delete(\"/deployment/api/deployments/\" + deploymentId);\n    }\n}\n\n/**\n * Custom Project 리소스 처리\n */\nfunction processCustomProjects(resources) {\n    var deleteRequests = [];\n    var customProjects = aa.get(\"/deployment/api/resources?resourceTypes=Custom.Project\").content;\n    \n    for each (var resourceId in resources) {\n        try {\n            // 프로젝트의 관련 액션 리소스들을 먼저 삭제\n            var actionDeleteRequests = deleteProjectActionResources(resourceId);\n            if (actionDeleteRequests.length > 0) {\n                waitForAllRequestsToComplete(actionDeleteRequests);\n            }\n            \n            // 프로젝트 자체 삭제\n            var project = findProjectByResourceId(customProjects, resourceId);\n            var deleteRequest = aa.delete(\"/deployment/api/deployments/\" + project.deploymentId);\n            deleteRequests.push(deleteRequest.id);\n            \n        } catch (error) {\n            System.error(\"Failed to process custom project \" + resourceId + \": \" + error);\n            throw error;\n        }\n    }\n    \n    return deleteRequests;\n}\n\n/**\n * 프로젝트의 액션 리소스들 삭제\n */\nfunction deleteProjectActionResources(projectId) {\n    var actionResources = aa.get(\"/deployment/api/resources?resourceTypes=\" + RESOURCE_TYPES.VRO_WORKFLOW + \"&projects=\" + projectId);\n    var deleteRequests = [];\n    \n    if (actionResources.totalElements > 0) {\n        for (var i = 0; i < actionResources.totalPages; i++) {\n            var pageResources = aa.get(\"/deployment/api/resources?resourceTypes=\" + RESOURCE_TYPES.VRO_WORKFLOW + \"&page=\" + i + \"&projects=\" + projectId).content;\n            \n            for each (var resource in pageResources) {\n                var deleteRequest = aa.delete(\"/deployment/api/deployments/\" + resource.deploymentId);\n                deleteRequests.push(deleteRequest.id);\n            }\n        }\n    }\n    \n    return deleteRequests;\n}\n\n/**\n * 리소스 ID로 프로젝트 찾기\n */\nfunction findProjectByResourceId(projects, resourceId) {\n    for each (var project in projects) {\n        if (project.properties.selfId === resourceId) {\n            return project;\n        }\n    }\n    throw \"Project not found for resource ID: \" + resourceId;\n}\n\n/**\n * 일반 리소스 처리\n */\nfunction processGenericResources(resources) {\n    var deleteRequests = [];\n    \n    for each (var resourceId in resources) {\n        try {\n            var resource = aa.get(\"/deployment/api/resources/\" + resourceId);\n            var deleteRequest = aa.delete(\"/deployment/api/deployments/\" + resource.deploymentId);\n            deleteRequests.push(deleteRequest.id);\n        } catch (error) {\n            System.error(\"Failed to process generic resource \" + resourceId + \": \" + error);\n            throw error;\n        }\n    }\n    \n    return deleteRequests;\n}\n\n/**\n * 모든 삭제 요청 완료 대기\n */\nfunction waitForAllRequestsToComplete(requestIds) {\n    if (!requestIds || requestIds.length === 0) {\n        return;\n    }\n    \n    var attempts = 0;\n    var allSuccessful = false;\n    \n    while (!allSuccessful && attempts < POLLING_CONFIG.MAX_ATTEMPTS) {\n        allSuccessful = true;\n        var statuses = [];\n        \n        for (var i = 0; i < requestIds.length; i++) {\n            var requestId = requestIds[i];\n            var result = aa.get(\"/deployment/api/requests/\" + requestId);\n            statuses.push(result.status);\n            \n            if (result.status === \"FAILED\") {\n                throw \"Request failed: \" + result.details;\n            }\n            \n            if (result.status !== \"SUCCESSFUL\") {\n                allSuccessful = false;\n            }\n        }\n        \n        if (!allSuccessful) {\n            attempts++;\n            System.log(\"Waiting for requests to complete... Attempt \" + attempts + \"/\" + POLLING_CONFIG.MAX_ATTEMPTS);\n            System.sleep(POLLING_CONFIG.SLEEP_INTERVAL);\n        }\n    }\n    \n    if (!allSuccessful) {\n        throw \"Timeout waiting for deletion requests to complete after \" + POLLING_CONFIG.MAX_ATTEMPTS + \" attempts\";\n    }\n}",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "resourceType",
+                        "type": "string",
+                        "export-name": "resourceType"
+                    },
+                    {
+                        "name": "resourceIds",
+                        "type": "Array/string",
+                        "export-name": "resourceIds"
+                    },
+                    {
+                        "name": "resourceId",
+                        "type": "string",
+                        "export-name": "resourceId"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 70.5,
+                "x": 180.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "7070395d-e818-4b5d-9b3b-361ccf3c8621",
+    "version": "0.0.2",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

@@ -1,0 +1,74 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/inventory/System/Workflows/GVP/Action/Compute/",
+                "rel": "up"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/executions/",
+                "rel": "executions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/presentation/",
+                "rel": "presentation"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/tasks/",
+                "rel": "tasks"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/icon/",
+                "rel": "icon"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/schema/",
+                "rel": "schema"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/content/",
+                "rel": "content"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/interactions/",
+                "rel": "interactions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697/validate/",
+                "rel": "validate"
+            }
+        ]
+    },
+    "id": "5fe53c99-7e5f-4c45-a3fa-dbbe3bf75697",
+    "customized-icon": false,
+    "name": "VM 이름 변경",
+    "version": "0.0.0",
+    "category-id": "469280199e38cae0019e38e915500d1a",
+    "input-parameters": [
+        {
+            "type": "string",
+            "name": "_metadata_main_catalog"
+        },
+        {
+            "type": "string",
+            "name": "_metadata_catalog"
+        },
+        {
+            "type": "string",
+            "name": "resourceId"
+        },
+        {
+            "type": "string",
+            "name": "requestMessage"
+        },
+        {
+            "type": "string",
+            "name": "displayName"
+        }
+    ]
+}

@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/de716c01-f7d4-4e1f-8d3f-3893faac0bf1/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm/getProfileByProjectId/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/de716c01-f7d4-4e1f-8d3f-3893faac0bf1/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/de716c01-f7d4-4e1f-8d3f-3893faac0bf1/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "de716c01-f7d4-4e1f-8d3f-3893faac0bf1",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "projectId"
+        }
+    ],
+    "output-type": "string",
+    "name": "getProfileByProjectId",
+    "module": "com.gvp.bp.vm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm/getProfileByProjectId",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

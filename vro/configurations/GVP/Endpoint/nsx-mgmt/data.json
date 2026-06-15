@@ -1,0 +1,44 @@
+{
+    "id": "5f3df137-aab8-46c8-bdd6-2a08f0cd179b",
+    "name": "data",
+    "version": "0.0.0",
+    "attributes": [
+        {
+            "value": {
+                "string": {
+                    "value": "nsx-mgmt.gooddi.lab"
+                }
+            },
+            "type": "string",
+            "name": "hostname"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "admin"
+                }
+            },
+            "type": "string",
+            "name": "username"
+        },
+        {
+            "value": {
+                "secure-string": {
+                    "value": "20BR56K4DT77W61N72X65V31R32R33S21J56H4DO77X61V72P65Y31X32J33P21N780C444Y131BC3BY13003F9HD25A699XCE0F4A4QD079874N367EB0HDDBA03AY79A18DAT614B9C3PBF62E3CSE7D57E0X",
+                    "isPlainText": false
+                }
+            },
+            "type": "SecureString",
+            "name": "password"
+        },
+        {
+            "value": {
+                "string": {
+                    "value": "GVP/Endpoint/nsx-mgmt"
+                }
+            },
+            "type": "string",
+            "name": "_path"
+        }
+    ]
+}

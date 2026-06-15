@@ -1,0 +1,89 @@
+{
+    "display-name": "Batch Get GPU Info",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "time",
+                "type": "string"
+            },
+            {
+                "name": "_metadata_main_catalog",
+                "type": "string"
+            },
+            {
+                "name": "_metadata_catalog",
+                "type": "string"
+            }
+        ]
+    },
+    "output": {
+        "param": [
+            {
+                "name": "output",
+                "type": "Array/Properties"
+            }
+        ]
+    },
+    "attrib": [],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 460.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var vcenters = [];\nvar vcsaSdks = VcPlugin.allSdkConnections;\nvar currentTime = System.getCurrentTime();\nvar dayBeforeTime = currentTime - (24 * 60 * 60 * 1000);\nvar startTime = new Date(dayBeforeTime);\nvar endTime = new Date(currentTime - (10 * 60 * 1000));\n\n\n\nfor(var i in vcsaSdks){\n    try {\n        var format = {};\n        var vim = vcsaSdks[i];\n        \n        // vCenter 연결 상태 확인\n        if (!vim || !vim.PerformanceManager) {\n            System.log(\"vCenter SDK connection invalid for: \" + (vim ? vim.id : \"unknown\"));\n            continue;\n        }\n        \n        var perf = vim.PerformanceManager;\n        format.vcenter = {};\n        format.vcenter.name = vim.id;\n        format.vcenter.timestamp = !time ? String(endTime) : time;\n        format.vcenter.clusters = [];\n        \n        var clusters = vim.getAllClusterComputeResources();\n        if (!clusters) {\n            System.log(\"No clusters found for vCenter: \" + vim.id);\n            continue;\n        }\n        \n        for(var c in clusters){\n            try {\n                // 성능 메트릭 가용성 확인\n                var availableMetrics = perf.queryAvailablePerfMetric(clusters[c]);\n                if (!availableMetrics || availableMetrics.length === 0) {\n                    System.log(\"No performance metrics available for cluster: \" + clusters[c].name);\n                    continue;\n                }\n                \n                var query = new Array;\n                query[0] = new VcPerfQuerySpec;\n                query[0].entity = clusters[c];\n                query[0].startTime = startTime;\n                query[0].endTime = endTime;\n                query[0].intervalId = 300;\n                query[0].metricId = availableMetrics.filter(function(item) {\n                    return (item.counterId == 284 || item.counterId == 280); \n                }); \n                \n                // GPU 메트릭이 없는 경우 스킵\n                if (query[0].metricId.length === 0) {\n                    System.log(\"No GPU metrics found for cluster: \" + clusters[c].name);\n                    continue;\n                }\n                \n                var metricSeries = null;\n                try {\n                    var perfResult = perf.queryPerf(query);\n                    metricSeries = (perfResult && perfResult.length > 0) ? perfResult[0].value : null;\n                } catch (perfError) {\n                    System.log(\"Performance query failed for cluster \" + clusters[c].name + \": \" + perfError);\n                    continue;\n                }\n\n                if(metricSeries && metricSeries.some(function(item){return item && item.value !== null;})){\n                    var totalGpuMemSeries = metricSeries.filter(function(item){return item.id.counterId == 284});\n                    var usedGpuMemSeries = metricSeries.filter(function(item){return item.id.counterId == 280});\n                    \n                    // 메트릭 데이터 검증\n                    if (totalGpuMemSeries.length === 0 || usedGpuMemSeries.length === 0) {\n                        System.log(\"Incomplete GPU metrics for cluster: \" + clusters[c].name);\n                        continue;\n                    }\n                    \n                    var totalGpuMem = totalGpuMemSeries[0].value;\n                    var usedGpuMem = usedGpuMemSeries[0].value;\n                    \n                    if (!totalGpuMem || !usedGpuMem || totalGpuMem.length === 0 || usedGpuMem.length === 0) {\n                        System.log(\"No GPU memory data available for cluster: \" + clusters[c].name);\n                        continue;\n                    }\n                    \n                    var clusterFormat = {};\n                    clusterFormat.name = clusters[c].name;\n                    clusterFormat.id = clusters[c].id;\n                    clusterFormat.sdk_id = clusters[c].sdkId;\n                    clusterFormat.total_gpu_memory_gb = 0;\n                    clusterFormat.used_gpu_memory_gb = Math.round(usedGpuMem[0] /1024 / 1024) || 0;\n                    clusterFormat.total_gpus = 0;\n                    clusterFormat.total_hosts = clusters[c].host ? clusters[c].host.length : 0;\n                    clusterFormat.hosts_with_gpu = 0;\n                    clusterFormat.total_vms_with_gpu = 0;\n                    clusterFormat.hosts = [];\n\n                    var hostList = clusters[c].host;\n                    if (hostList) {\n                        for (var h in hostList){\n                            try {\n                                if(hostList[h].state == \"connected\"){\n                                    var configManager = hostList[h].configManager;\n                                    if (!configManager || !configManager.graphicsManager) {\n                                        System.log(\"Graphics manager not available for host: \" + hostList[h].name);\n                                        continue;\n                                    }\n                                    \n                                    var gpuManager = configManager.graphicsManager;\n                                    var vgpuProfileInfo = null;\n                                    \n                                    try {\n                                        vgpuProfileInfo = gpuManager.retrieveVgpuProfileInfo();\n                                    } catch (gpuError) {\n                                        System.log(\"Failed to retrieve GPU profile info for host \" + hostList[h].name + \": \" + gpuError);\n                                        continue;\n                                    }\n                                    \n                                    if(vgpuProfileInfo != null) {\n                                        var gpuDevices = hostList[h].config.graphicsInfo;\n                                        if (!gpuDevices || gpuDevices.length === 0) {\n                                            continue;\n                                        }\n                                        \n                                        var hostFormat = {};\n                                        hostFormat.name = hostList[h].name;\n                                        hostFormat.id = hostList[h].id;\n                                        hostFormat.sdk_id = hostList[h].sdkId;\n                                        hostFormat.total_gpus = gpuDevices.length;\n                                        hostFormat.gpu_profile_types = gpuManager.sharedPassthruGpuTypes || [];\n                                        hostFormat.total_gpu_memory_gb = 0; // 변수명 일관성 유지\n                                        hostFormat.allocated_gpu_memory_gb = 0;\n                                        hostFormat.total_vms = hostList[h].vm ? hostList[h].vm.length : 0;\n                                        hostFormat.vms_with_gpu = 0;\n                                        hostFormat.gpu_devices = [];\n                                        \n                                        for(var g in gpuDevices){\n                                            try {\n                                                var gpuFormat = {};\n                                                var vms = gpuDevices[g].vm;\n                                                gpuFormat.name = gpuDevices[g].deviceName || \"Unknown GPU\";\n                                                gpuFormat.pci_id = gpuDevices[g].pciId || \"Unknown\";\n                                                gpuFormat.memory_size_gb = gpuDevices[g].memorySizeInKB ? \n                                                    Math.round((gpuDevices[g].memorySizeInKB / 1024) / 1024) : 0;\n                                                gpuFormat.virtual_machines = [];\n\n                                                if(vms && vms.length > 0){\n                                                    for(var v in vms ){\n                                                        try {\n                                                            var vm = VcPlugin.toManagedObject(vim, vms[v]);\n                                                            if (!vm || !vm.config || !vm.config.hardware) {\n                                                                continue;\n                                                            }\n                                                            \n                                                            var vmFormat = {};\n                                                            var devices = vm.config.hardware.device;\n                                                            var vgpuProfile = \"Unknown\";\n                                                            \n                                                            if (devices) {\n                                                                for (var d in devices) {\n                                                                    if (devices[d] instanceof VcVirtualPCIPassthrough && \n                                                                        devices[d].backing && \n                                                                        devices[d].backing.vgpu) {\n                                                                        vgpuProfile = devices[d].backing.vgpu;\n                                                                        break;\n                                                                    }\n                                                                }\n                                                            }\n                                                            \n                                                            vmFormat.name = vm.name;\n                                                            vmFormat.id = vm.id;\n                                                            vmFormat.sdk_id = vm.sdkId;\n                                                            vmFormat.power_state = vm.runtime && vm.runtime.powerState ? \n                                                                vm.runtime.powerState.value : \"unknown\";\n                                                            vmFormat.gpu_allocation = {};\n                                                            vmFormat.gpu_allocation.vgpu_profile = vgpuProfile;\n                                                            \n                                                            var match = vgpuProfile.match(/-(\\d+)/);\n                                                            vmFormat.gpu_allocation.allocated_memory_gb = match ? \n                                                                parseInt(match[1], 10) : null;\n                                                            \n                                                            gpuFormat.virtual_machines.push(vmFormat);\n                                                            hostFormat.allocated_gpu_memory_gb += vmFormat.gpu_allocation.allocated_memory_gb;\n                                                        } catch (vmError) {\n                                                            System.log(\"Error processing VM: \" + vmError);\n                                                        }\n                                                    }\n                                                }\n\n                                                hostFormat.total_gpu_memory_gb += gpuFormat.memory_size_gb;\n                                                hostFormat.vms_with_gpu += gpuFormat.virtual_machines.length;\n                                                clusterFormat.total_vms_with_gpu += gpuFormat.virtual_machines.length;\n                                                hostFormat.gpu_devices.push(gpuFormat);\n                                            } catch (gpuDeviceError) {\n                                                System.log(\"Error processing GPU device: \" + gpuDeviceError);\n                                            }\n                                        }\n\n                                        clusterFormat.total_gpus += gpuDevices.length;\n                                        clusterFormat.total_gpu_memory_gb += hostFormat.total_gpu_memory_gb;\n                                        clusterFormat.hosts.push(hostFormat);\n                                    }\n                                }\n                            } catch (hostError) {\n                                System.log(\"Error processing host \" + (hostList[h] ? hostList[h].name : \"unknown\") + \": \" + hostError);\n                            }\n                        }\n                    }\n                    \n                    clusterFormat.hosts_with_gpu = clusterFormat.hosts.length;\n                    format.vcenter.clusters.push(clusterFormat);\n                }\n            } catch (clusterError) {\n                System.log(\"Error processing cluster \" + (clusters[c] ? clusters[c].name : \"unknown\") + \": \" + clusterError);\n            }\n        }\n        \n        if(format.vcenter.clusters.length > 0){\n            vcenters.push(format);\n        }\n    } catch (vcenterError) {\n        System.log(\"Error processing vCenter \" + (vim ? vim.id : \"unknown\") + \": \" + vcenterError);\n    }\n}\n\noutput = vcenters;",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "time",
+                        "type": "string",
+                        "export-name": "time"
+                    }
+                ]
+            },
+            "out-binding": {
+                "bind": [
+                    {
+                        "name": "output",
+                        "type": "Array/Properties",
+                        "export-name": "output"
+                    }
+                ]
+            },
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 50.0,
+                "x": 200.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "presentation": {},
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "766d8c20-54af-4662-8a79-11abf900a1bf",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

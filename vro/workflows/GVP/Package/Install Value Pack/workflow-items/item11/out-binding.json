@@ -1,0 +1,9 @@
+{
+    "bind": [
+        {
+            "name": "error",
+            "type": "string",
+            "export-name": "error"
+        }
+    ]
+}

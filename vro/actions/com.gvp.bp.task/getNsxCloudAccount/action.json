@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/37493411-988e-4cd9-aa0e-f33bc25ceefb/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.task/getNsxCloudAccount/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/37493411-988e-4cd9-aa0e-f33bc25ceefb/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/37493411-988e-4cd9-aa0e-f33bc25ceefb/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "37493411-988e-4cd9-aa0e-f33bc25ceefb",
+    "output-type": "Array/Properties",
+    "name": "getNsxCloudAccount",
+    "module": "com.gvp.bp.task",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.task/getNsxCloudAccount",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

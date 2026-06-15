@@ -1,0 +1,10 @@
+{
+    "bind": [
+        {
+            "description": "VMware Aria Automation Host Connection object",
+            "name": "host",
+            "type": "VRA:Host",
+            "export-name": "host"
+        }
+    ]
+}

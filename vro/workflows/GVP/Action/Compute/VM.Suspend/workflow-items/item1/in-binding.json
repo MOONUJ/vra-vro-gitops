@@ -1,0 +1,9 @@
+{
+    "bind": [
+        {
+            "name": "resourceId",
+            "type": "Array/string",
+            "export-name": "resourceId"
+        }
+    ]
+}

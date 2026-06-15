@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/d1e6dcb8-67ce-43c3-80fc-689981c8eae4/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp/SecureShell/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/d1e6dcb8-67ce-43c3-80fc-689981c8eae4/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/d1e6dcb8-67ce-43c3-80fc-689981c8eae4/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "d1e6dcb8-67ce-43c3-80fc-689981c8eae4",
+    "output-type": "Properties",
+    "name": "SecureShell",
+    "module": "com.gvp",
+    "version": "0.0.1",
+    "fqn": "com.gvp/SecureShell",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

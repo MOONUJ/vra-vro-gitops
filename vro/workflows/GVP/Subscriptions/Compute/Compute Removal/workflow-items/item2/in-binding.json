@@ -1,0 +1,10 @@
+{
+    "bind": [
+        {
+            "description": "Virtual machine to shut down",
+            "name": "vm",
+            "type": "VC:VirtualMachine",
+            "export-name": "vm"
+        }
+    ]
+}

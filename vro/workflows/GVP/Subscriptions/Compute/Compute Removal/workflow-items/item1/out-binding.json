@@ -1,0 +1,14 @@
+{
+    "bind": [
+        {
+            "name": "isGpu",
+            "type": "boolean",
+            "export-name": "isGpu"
+        },
+        {
+            "name": "vm",
+            "type": "VC:VirtualMachine",
+            "export-name": "vm"
+        }
+    ]
+}

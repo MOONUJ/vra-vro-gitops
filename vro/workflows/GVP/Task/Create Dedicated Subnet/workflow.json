@@ -1,0 +1,62 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/inventory/System/Workflows/GVP/Task/",
+                "rel": "up"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/executions/",
+                "rel": "executions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/presentation/",
+                "rel": "presentation"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/tasks/",
+                "rel": "tasks"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/icon/",
+                "rel": "icon"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/schema/",
+                "rel": "schema"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/content/",
+                "rel": "content"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/interactions/",
+                "rel": "interactions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/11f0c5ef-0272-423e-ac83-9f286f4c6c37/validate/",
+                "rel": "validate"
+            }
+        ]
+    },
+    "id": "11f0c5ef-0272-423e-ac83-9f286f4c6c37",
+    "customized-icon": false,
+    "name": "Create Dedicated Subnet",
+    "version": "0.0.0",
+    "category-id": "469280199e38cae0019e38e9176f0d5f",
+    "input-parameters": [
+        {
+            "type": "string",
+            "name": "orgCode"
+        },
+        {
+            "type": "number",
+            "name": "vlanId"
+        }
+    ]
+}

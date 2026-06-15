@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/738ab874-6cf6-4a30-ba36-9748d346ee8e/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm/setHostName/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/738ab874-6cf6-4a30-ba36-9748d346ee8e/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/738ab874-6cf6-4a30-ba36-9748d346ee8e/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "738ab874-6cf6-4a30-ba36-9748d346ee8e",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "displayName"
+        }
+    ],
+    "output-type": "Array/string",
+    "name": "setHostName",
+    "module": "com.gvp.bp.vm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm/setHostName",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

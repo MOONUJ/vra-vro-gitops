@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/9598eb5b-2361-41c7-8ed5-8fe3bf87ad87/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.vm/getAddressTypeByTagValue/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/9598eb5b-2361-41c7-8ed5-8fe3bf87ad87/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/9598eb5b-2361-41c7-8ed5-8fe3bf87ad87/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "9598eb5b-2361-41c7-8ed5-8fe3bf87ad87",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "tagValue"
+        }
+    ],
+    "output-type": "Array/Properties",
+    "name": "getAddressTypeByTagValue",
+    "module": "com.gvp.bp.vm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.vm/getAddressTypeByTagValue",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

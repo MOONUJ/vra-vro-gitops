@@ -1,0 +1,67 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/8dee9eb4-ceba-42b8-9ef0-7b92b9a0cc69/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp/execScripts/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/8dee9eb4-ceba-42b8-9ef0-7b92b9a0cc69/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/8dee9eb4-ceba-42b8-9ef0-7b92b9a0cc69/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "8dee9eb4-ceba-42b8-9ef0-7b92b9a0cc69",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "vcHostname"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "vcUsername"
+        },
+        {
+            "description": "",
+            "type": "SecureString",
+            "name": "vcPassword"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "vmName"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "vmUsername"
+        },
+        {
+            "description": "",
+            "type": "SecureString",
+            "name": "vmPassword"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "scripts"
+        }
+    ],
+    "output-type": "string",
+    "name": "execScripts",
+    "module": "com.gvp",
+    "version": "0.0.1",
+    "fqn": "com.gvp/execScripts",
+    "script": "",
+    "bundleHasContent": false,
+    "runtime": "powercli:13-powershell-7.4",
+    "runtimeMemoryLimit": 512000000,
+    "runtimeTimeout": 0
+}

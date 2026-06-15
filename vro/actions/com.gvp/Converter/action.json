@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/dc6211d5-8fdf-4472-900b-bdb0e512feb4/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp/Converter/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/dc6211d5-8fdf-4472-900b-bdb0e512feb4/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/dc6211d5-8fdf-4472-900b-bdb0e512feb4/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "dc6211d5-8fdf-4472-900b-bdb0e512feb4",
+    "output-type": "Properties",
+    "name": "Converter",
+    "module": "com.gvp",
+    "version": "0.0.1",
+    "fqn": "com.gvp/Converter",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

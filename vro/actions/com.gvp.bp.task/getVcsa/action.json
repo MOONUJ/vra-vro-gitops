@@ -1,0 +1,29 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/834a7a21-7650-428d-aa9d-fb8e1688a034/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.task/getVcsa/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/834a7a21-7650-428d-aa9d-fb8e1688a034/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/834a7a21-7650-428d-aa9d-fb8e1688a034/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "834a7a21-7650-428d-aa9d-fb8e1688a034",
+    "output-type": "Array/string",
+    "name": "getVcsa",
+    "module": "com.gvp.bp.task",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.task/getVcsa",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

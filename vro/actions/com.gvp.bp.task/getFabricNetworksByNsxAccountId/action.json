@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/78beb27a-d614-49da-80dd-8b8810a9c495/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.task/getFabricNetworksByNsxAccountId/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/78beb27a-d614-49da-80dd-8b8810a9c495/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/78beb27a-d614-49da-80dd-8b8810a9c495/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "78beb27a-d614-49da-80dd-8b8810a9c495",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "accountId"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "search"
+        }
+    ],
+    "output-type": "Array/Properties",
+    "name": "getFabricNetworksByNsxAccountId",
+    "module": "com.gvp.bp.task",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.task/getFabricNetworksByNsxAccountId",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

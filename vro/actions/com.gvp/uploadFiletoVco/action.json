@@ -1,0 +1,36 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/7b9f2dce-a4a1-4ec6-bf25-2a9a8aec5744/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp/uploadFiletoVco/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/7b9f2dce-a4a1-4ec6-bf25-2a9a8aec5744/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/7b9f2dce-a4a1-4ec6-bf25-2a9a8aec5744/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "7b9f2dce-a4a1-4ec6-bf25-2a9a8aec5744",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "MimeAttachment",
+            "name": "mimeAttach"
+        }
+    ],
+    "output-type": "boolean",
+    "name": "uploadFiletoVco",
+    "module": "com.gvp",
+    "version": "0.0.0",
+    "fqn": "com.gvp/uploadFiletoVco",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}

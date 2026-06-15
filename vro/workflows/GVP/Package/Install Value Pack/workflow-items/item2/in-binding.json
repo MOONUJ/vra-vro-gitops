@@ -1,0 +1,46 @@
+{
+    "bind": [
+        {
+            "description": "VMware Aria Automation Host Password",
+            "name": "password",
+            "type": "SecureString",
+            "export-name": "aaPassword"
+        },
+        {
+            "description": "VMware Aria Automation Host Username",
+            "name": "user",
+            "type": "string",
+            "export-name": "aaUsername"
+        },
+        {
+            "description": "VMware Aria Automation Connection Type(vra-onprem)",
+            "name": "connectionType",
+            "type": "string",
+            "export-name": "aaConnectionType"
+        },
+        {
+            "description": "VMware Aria Automation Host Connection Name",
+            "name": "name",
+            "type": "string",
+            "export-name": "aaInvName"
+        },
+        {
+            "description": "VMware Aria Automation Host URL",
+            "name": "vraHost",
+            "type": "string",
+            "export-name": "aaUrl"
+        },
+        {
+            "description": "Check to ignore SSL certification import warning",
+            "name": "ignoreWarnings",
+            "type": "boolean",
+            "export-name": "aaIgnoreWarning"
+        },
+        {
+            "description": "VMware Aria Automation connection session mode.",
+            "name": "sessionMode",
+            "type": "string",
+            "export-name": "aaSessionMode"
+        }
+    ]
+}

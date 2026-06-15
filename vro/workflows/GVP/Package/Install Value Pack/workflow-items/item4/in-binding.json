@@ -1,0 +1,14 @@
+{
+    "bind": [
+        {
+            "name": "adminProjectId",
+            "type": "string",
+            "export-name": "adminProjectId"
+        },
+        {
+            "name": "backupTimeStr",
+            "type": "string",
+            "export-name": "backupTimeStr"
+        }
+    ]
+}

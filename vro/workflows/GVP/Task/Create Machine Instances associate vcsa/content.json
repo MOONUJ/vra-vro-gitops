@@ -1,0 +1,153 @@
+{
+    "display-name": "Create Machine Instances associate vcsa",
+    "position": {
+        "y": 50.0,
+        "x": 100.0
+    },
+    "input": {
+        "param": [
+            {
+                "name": "name",
+                "type": "string"
+            },
+            {
+                "name": "cpu",
+                "type": "number"
+            },
+            {
+                "name": "memory",
+                "type": "number"
+            },
+            {
+                "name": "gpuModel",
+                "type": "string"
+            },
+            {
+                "name": "gpuSize",
+                "type": "string"
+            },
+            {
+                "name": "gpuProfile",
+                "type": "string"
+            },
+            {
+                "name": "vcsa",
+                "type": "string"
+            },
+            {
+                "name": "cluster",
+                "type": "Array/string"
+            },
+            {
+                "name": "deviceCount",
+                "type": "number"
+            }
+        ]
+    },
+    "output": {},
+    "attrib": [
+        {
+            "value": {
+                "string": {
+                    "value": "GVP/Instance"
+                }
+            },
+            "type": "string",
+            "name": "configurationPath"
+        }
+    ],
+    "workflow-item": [
+        {
+            "in-binding": {},
+            "out-binding": {},
+            "position": {
+                "y": 50.0,
+                "x": 780.0
+            },
+            "name": "item0",
+            "type": "end",
+            "end-mode": "0",
+            "comparator": 0
+        },
+        {
+            "display-name": "Scriptable task",
+            "script": {
+                "value": "var cec = Server.getConfigurationElementCategoryWithPath(configurationPath + \"/\" + vcsa);\nif(cec && cec.configurationElements){\n    var ce = cec.configurationElements.filter(function(item){ return item.name == name});\n    if(ce.length > 0){\n        throw \"Already Exsist Machine Instance Name\"\n    }\n    \n}\nvar config = Server.createConfigurationElement(configurationPath + \"/\" + vcsa, name);\nconfig.setAttributeWithKey(\"cpu\",Number(cpu), String(\"number\"));\nconfig.setAttributeWithKey(\"memory\",Number(memory), String(\"number\"));\nconfig.setAttributeWithKey(\"gpuModel\",String(gpuModel), String(\"string\"));\nconfig.setAttributeWithKey(\"gpuSize\",String(gpuSize), String(\"string\"));\nconfig.setAttributeWithKey(\"gpuProfile\",String(gpuProfile), String(\"string\"));\nconfig.setAttributeWithKey(\"deviceCount\",Number(deviceCount), String(\"number\"));\nconfig.setAttributeWithKey(\"cluster\",cluster, String(\"Array/string\"));",
+                "encoded": false
+            },
+            "in-binding": {
+                "bind": [
+                    {
+                        "name": "configurationPath",
+                        "type": "string",
+                        "export-name": "configurationPath"
+                    },
+                    {
+                        "name": "cluster",
+                        "type": "Array/string",
+                        "export-name": "cluster"
+                    },
+                    {
+                        "name": "cpu",
+                        "type": "number",
+                        "export-name": "cpu"
+                    },
+                    {
+                        "name": "memory",
+                        "type": "number",
+                        "export-name": "memory"
+                    },
+                    {
+                        "name": "deviceCount",
+                        "type": "number",
+                        "export-name": "deviceCount"
+                    },
+                    {
+                        "name": "vcsa",
+                        "type": "string",
+                        "export-name": "vcsa"
+                    },
+                    {
+                        "name": "gpuModel",
+                        "type": "string",
+                        "export-name": "gpuModel"
+                    },
+                    {
+                        "name": "gpuProfile",
+                        "type": "string",
+                        "export-name": "gpuProfile"
+                    },
+                    {
+                        "name": "gpuSize",
+                        "type": "string",
+                        "export-name": "gpuSize"
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "export-name": "name"
+                    }
+                ]
+            },
+            "out-binding": {},
+            "description": "Simple task with custom script capability.",
+            "position": {
+                "y": 60.0,
+                "x": 320.0
+            },
+            "name": "item1",
+            "out-name": "item0",
+            "type": "task",
+            "comparator": 0
+        }
+    ],
+    "root-name": "item1",
+    "object-name": "workflow:name=generic",
+    "id": "c848ba91-3731-4fcf-a120-a787248adcc6",
+    "version": "0.0.0",
+    "api-version": "6.0.0",
+    "allowed-operations": "vfe",
+    "restartMode": 1,
+    "resumeFromFailedMode": 0,
+    "editor-version": "2.0"
+}

@@ -1,0 +1,24 @@
+{
+    "bind": [
+        {
+            "name": "resourceId",
+            "type": "string",
+            "export-name": "resourceId"
+        },
+        {
+            "name": "cpuCount",
+            "type": "number",
+            "export-name": "cpuCount"
+        },
+        {
+            "name": "memoryCount",
+            "type": "number",
+            "export-name": "memoryCount"
+        },
+        {
+            "name": "coresPerSocket",
+            "type": "number",
+            "export-name": "coresPerSocket"
+        }
+    ]
+}

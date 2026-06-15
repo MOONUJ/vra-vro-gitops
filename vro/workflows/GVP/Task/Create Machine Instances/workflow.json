@@ -1,0 +1,58 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/inventory/System/Workflows/GVP/Task/",
+                "rel": "up"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/executions/",
+                "rel": "executions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/presentation/",
+                "rel": "presentation"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/tasks/",
+                "rel": "tasks"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/icon/",
+                "rel": "icon"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/schema/",
+                "rel": "schema"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/content/",
+                "rel": "content"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/interactions/",
+                "rel": "interactions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/workflows/279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9/validate/",
+                "rel": "validate"
+            }
+        ]
+    },
+    "id": "279aaf1c-1fe7-4c8e-af22-1cb64c5b25e9",
+    "customized-icon": false,
+    "name": "Create Machine Instances",
+    "version": "0.0.0",
+    "category-id": "469280199e38cae0019e38e9176f0d5f",
+    "input-parameters": [
+        {
+            "type": "Array/CompositeType(name:string,cpu:number,memory:number,gpuModel:string,gpuSize:string,gpuProfile:string,deviceCount:number,vcsa_cluster:Array/string):gpuMachineInstance",
+            "name": "machineInstance"
+        }
+    ]
+}

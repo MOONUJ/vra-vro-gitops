@@ -1,0 +1,41 @@
+{
+    "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/012c6b38-07db-4f37-9f65-5855a88774c0/",
+    "relations": {
+        "link": [
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/com.gvp.bp.gpuvm/getCloudZoneTagValueByTagCategoryAndCloudZoneLink/",
+                "rel": "alternate"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/012c6b38-07db-4f37-9f65-5855a88774c0/permissions/",
+                "rel": "permissions"
+            },
+            {
+                "href": "https://poscodx-auto.gooddi.lab:443/vco/api/actions/012c6b38-07db-4f37-9f65-5855a88774c0/executions/",
+                "rel": "executions"
+            }
+        ]
+    },
+    "id": "012c6b38-07db-4f37-9f65-5855a88774c0",
+    "input-parameters": [
+        {
+            "description": "",
+            "type": "string",
+            "name": "cloudZoneLink"
+        },
+        {
+            "description": "",
+            "type": "string",
+            "name": "category"
+        }
+    ],
+    "output-type": "string",
+    "name": "getCloudZoneTagValueByTagCategoryAndCloudZoneLink",
+    "module": "com.gvp.bp.gpuvm",
+    "version": "0.0.0",
+    "fqn": "com.gvp.bp.gpuvm/getCloudZoneTagValueByTagCategoryAndCloudZoneLink",
+    "script": "",
+    "bundleHasContent": false,
+    "runtimeMemoryLimit": 0,
+    "runtimeTimeout": 0
+}
