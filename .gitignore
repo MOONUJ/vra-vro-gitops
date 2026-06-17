@@ -1,9 +1,15 @@
 gitops/config.json
+gitops/token
+vco_openapi.json
+*.pdf
 __pycache__/
 *.pyc
 .DS_Store
-vco_openapi.json
-*.pdf
+.vscode/
+.claude/
+.venv/
+.venv-auto/
+.agent/
 
 # Terraform ignores
 .terraform/

@@ -1,1 +1,0 @@
-System.log("start schedule task")

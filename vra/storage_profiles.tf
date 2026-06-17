@@ -4,7 +4,6 @@ resource "vra_storage_profile_vsphere" "storage_profile" {
   region_id         = data.vra_region.vsphere_region.id
   default_item      = false
   provisioning_type = "thin"
-  disk_type         = "firstClass"
 
   tags {
     key   = "env"

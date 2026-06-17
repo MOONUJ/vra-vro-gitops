@@ -1,29 +1,29 @@
 resource "vra_cloud_account_vsphere" "vsphere" {
-  name                    = "vsphere-cloud-account"
+  name                    = var.vsphere_endpoint
   description             = "vSphere Cloud Account managed by Terraform"
   hostname                = var.vsphere_endpoint
   username                = var.vsphere_username
   password                = var.vsphere_password
   accept_self_signed_cert = var.vra_insecure
+  associated_cloud_account_ids = [vra_cloud_account_nsxt.nsxt.id]
 
-  regions = [var.vsphere_dc]
+  enabled_regions {
+    external_region_id = var.vsphere_dc
+    name = "gooddi-work01-domain-DC"
+  }
 
-  tags {
-    key   = "env"
-    value = var.environment_tag
+  timeouts {
+    create = "5m"
+    update = "5m"
+    delete = "5m"
   }
 }
 
 resource "vra_cloud_account_nsxt" "nsxt" {
-  name                    = "nsxt-cloud-account"
+  name                    = var.nsxt_endpoint
   description             = "NSX-T Cloud Account managed by Terraform"
   hostname                = var.nsxt_endpoint
   username                = var.nsxt_username
   password                = var.nsxt_password
   accept_self_signed_cert = var.vra_insecure
-
-  tags {
-    key   = "env"
-    value = var.environment_tag
-  }
 }

@@ -1,9 +1,0 @@
-{
-    "bind": [
-        {
-            "name": "aaConnectionType",
-            "type": "string",
-            "export-name": "aaConnectionType"
-        }
-    ]
-}

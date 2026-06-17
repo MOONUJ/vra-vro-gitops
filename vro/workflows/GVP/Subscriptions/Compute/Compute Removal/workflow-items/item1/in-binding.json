@@ -1,9 +1,0 @@
-{
-    "bind": [
-        {
-            "name": "inputProperties",
-            "type": "Properties",
-            "export-name": "inputProperties"
-        }
-    ]
-}

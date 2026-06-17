@@ -1,1 +1,0 @@
-return VcPlugin.allSdkConnections[0].getAllVmFolders()

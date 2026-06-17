@@ -445,6 +445,18 @@ class VroClient:
         logger.info("Workflow content updated successfully.")
         return True
 
+    def update_workflow(self, workflow_id, workflow_meta):
+        """
+        Updates workflow metadata (like version) using PUT /workflows/{id}.
+        """
+        logger.info(f"Updating workflow metadata for ID: {workflow_id}...")
+        path = f"/workflows/{workflow_id}"
+        response = self.request("PUT", path, json=workflow_meta)
+        if response.status_code >= 400:
+            logger.error(f"Failed to update workflow metadata (status {response.status_code}): {response.text}")
+            response.raise_for_status()
+        return response.json()
+
     # ==========================================
     # Stub APIs for Future Expansion (Actions, Configs, Resources)
     # ==========================================
@@ -506,7 +518,7 @@ class VroClient:
         if response.status_code >= 400:
             logger.error(f"Failed to update configuration (status {response.status_code}): {response.text}")
             response.raise_for_status()
-        return response.json()
+        return response.json() if response.text else {}
 
     def create_configuration(self, category_id, config_json):
         """
@@ -586,7 +598,7 @@ class VroClient:
         if response.status_code >= 400:
             logger.error(f"Failed to update resource metadata (status {response.status_code}): {response.text}")
             response.raise_for_status()
-        return response.json()
+        return response.json() if response.text else {}
 
     def create_resource(self, category_id, file_path, filename=None):
         """

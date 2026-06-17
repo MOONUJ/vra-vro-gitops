@@ -629,24 +629,7 @@ def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
                     need_bootstrap = True
                     break
 
-    # 1. Bootstrap Phase: Import package if needed
-    if need_bootstrap:
-        pkg_config = config.get("package", {})
-        pkg_local_path = pkg_config.get("local_path")
-        if pkg_local_path:
-            pkg_full_path = os.path.join(root_dir, pkg_local_path)
-            if os.path.exists(pkg_full_path):
-                logger.info(f"Triggering bootstrap by importing package file: {pkg_local_path}")
-                try:
-                    client.import_package(pkg_full_path, overwrite=True)
-                except Exception as e:
-                    logger.error(f"Package import bootstrap failed: {e}. Proceeding with individual fallback creations.")
-            else:
-                logger.warning(f"Bootstrap requested/needed, but package file not found at: {pkg_full_path}")
-        else:
-            logger.info("No package file configured for bootstrapping. Individual fallback creation will be used.")
-
-    # 2. Sync Phase: Update each workflow content
+    # 1. Sync Phase: Update each workflow content
     for wf in workflows_to_push:
         wf_id = wf["id"]
         wf_name = wf["name"]
@@ -656,16 +639,11 @@ def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
         try:
             logger.info(f"Pushing workflow: {wf_name} (ID: {wf_id})...")
             
-            # Double check existence, if still missing (e.g. no package or package didn't contain it), create skeleton
+            # Double check existence, if still missing, skip
             server_wf = client.get_workflow(wf_id)
             if not server_wf:
-                logger.info(f"Workflow {wf_name} still missing on server. Creating skeleton folder hierarchy...")
-                category_path = wf_meta.get("folder", "")
-                if not category_path:
-                    category_path = "GVP" # Default fallback
-                    
-                category_id = client.ensure_category_path(category_path, "WorkflowCategory")
-                client.create_workflow_skeleton(wf_name, category_id, wf_id)
+                logger.error(f"Workflow '{wf_name}' (ID: {wf_id}) does not exist on the target server. Please run Day-1 Provisioning first. Skipping.")
+                continue
                 
             # Update content
             client.update_workflow_content(wf_id, wf_content)
@@ -673,7 +651,7 @@ def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
         except Exception as e:
             logger.error(f"Failed to push workflow {wf_name} (ID: {wf_id}): {e}")
 
-    # 3. Sync Phase: Update each action content
+    # 2. Sync Phase: Update each action content
     for act in actions_to_push:
         act_id = act["id"]
         act_name = act["name"]
@@ -682,17 +660,16 @@ def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
         try:
             logger.info(f"Pushing action: {act_name} (ID: {act_id})...")
             
-            # Double check existence, if missing, create it
+            # Double check existence, if missing, skip
             server_act = client.get_action(act_id)
             if server_act:
                 client.update_action(act_id, act_json)
             else:
-                client.create_action(act_json)
-            logger.info(f"Successfully pushed action {act_name} to server.")
+                logger.error(f"Action '{act_name}' (ID: {act_id}) does not exist on the target server. Please run Day-1 Provisioning first. Skipping.")
         except Exception as e:
             logger.error(f"Failed to push action {act_name} (ID: {act_id}): {e}")
 
-    # 4. Sync Phase: Update each configuration
+    # 3. Sync Phase: Update each configuration
     for cfg in configs_to_push:
         cfg_id = cfg["id"]
         cfg_name = cfg["name"]
@@ -703,26 +680,18 @@ def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
             logger.info(f"Pushing configuration: {cfg_name} (ID: {cfg_id})...")
             server_cfg = client.get_configuration(cfg_id)
             if not server_cfg:
-                logger.info(f"Configuration {cfg_name} still missing on server. Creating configuration element...")
-                category_id = client.ensure_category_path(cat_path, "ConfigurationElementCategory")
-                create_payload = {
-                    "id": cfg_id,
-                    "name": cfg_name,
-                    "version": cfg_json.get("version", "0.0.0"),
-                    "attributes": cfg_json.get("attributes", [])
-                }
-                client.create_configuration(category_id, create_payload)
+                logger.error(f"Configuration '{cfg_name}' (ID: {cfg_id}) does not exist on the target server. Please run Day-1 Provisioning first. Skipping.")
             else:
                 # Update attributes in place
                 update_payload = dict(server_cfg)
                 update_payload["attributes"] = cfg_json.get("attributes", [])
                 update_payload["version"] = cfg_json.get("version", "0.0.0")
                 client.update_configuration(cfg_id, update_payload)
-            logger.info(f"Successfully pushed configuration {cfg_name} to server.")
+                logger.info(f"Successfully pushed configuration {cfg_name} to server.")
         except Exception as e:
             logger.error(f"Failed to push configuration {cfg_name} (ID: {cfg_id}): {e}")
 
-    # 5. Sync Phase: Update each resource
+    # 4. Sync Phase: Update each resource
     for res in resources_to_push:
         res_id = res["id"]
         res_name = res["name"]
@@ -734,22 +703,16 @@ def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
             logger.info(f"Pushing resource: {res_name} (ID: {res_id})...")
             server_res = client.get_resource(res_id)
             if not server_res:
-                logger.info(f"Resource {res_name} still missing on server. Creating resource element...")
-                category_id = client.ensure_category_path(cat_path, "ResourceElementCategory")
-                client.create_resource(category_id, content_file, filename=res_name)
+                logger.error(f"Resource '{res_name}' (ID: {res_id}) does not exist on the target server. Please run Day-1 Provisioning first. Skipping.")
+                continue
 
-            # Retrieve again to make sure we have server side ID/meta and can push update
-            server_res = client.get_resource(res_id)
-            if server_res:
-                client.update_resource_content(res_id, content_file, filename=res_name)
-                
-                update_payload = dict(server_res)
-                update_payload["description"] = res_meta.get("description", "")
-                update_payload["version"] = res_meta.get("version", "0.0.0")
-                client.update_resource_metadata(res_id, update_payload)
-                logger.info(f"Successfully pushed resource {res_name} to server.")
-            else:
-                logger.error(f"Resource {res_name} (ID: {res_id}) does not exist on server and could not be bootstrapped with the correct ID.")
+            client.update_resource_content(res_id, content_file, filename=res_name)
+            
+            update_payload = dict(server_res)
+            update_payload["description"] = res_meta.get("description", "")
+            update_payload["version"] = res_meta.get("version", "0.0.0")
+            client.update_resource_metadata(res_id, update_payload)
+            logger.info(f"Successfully pushed resource {res_name} to server.")
         except Exception as e:
             logger.error(f"Failed to push resource {res_name} (ID: {res_id}): {e}")
 
@@ -1268,8 +1231,9 @@ def pull_all_vra(client, config, root_dir):
         for cr in matching_crs:
             name = cr.get("displayName") or cr.get("name")
             try:
+                full_cr = client.get_custom_resource(cr["id"]) or cr
                 with open(os.path.join(cr_dir, f"{name}.json"), "w", encoding="utf-8") as f:
-                    json.dump(cr, f, indent=4, ensure_ascii=False)
+                    json.dump(full_cr, f, indent=4, ensure_ascii=False)
                 logger.info(f"Successfully pulled Custom Resource '{name}'")
             except Exception as e:
                 logger.error(f"Failed to save Custom Resource '{name}': {e}")
@@ -1286,8 +1250,9 @@ def pull_all_vra(client, config, root_dir):
         for ra in matching_ras:
             name = ra.get("displayName") or ra.get("name")
             try:
+                full_ra = client.get_resource_action(ra["id"]) or ra
                 with open(os.path.join(ra_dir, f"{name}.json"), "w", encoding="utf-8") as f:
-                    json.dump(ra, f, indent=4, ensure_ascii=False)
+                    json.dump(full_ra, f, indent=4, ensure_ascii=False)
                 logger.info(f"Successfully pulled Resource Action '{name}'")
             except Exception as e:
                 logger.error(f"Failed to save Resource Action '{name}': {e}")
@@ -1312,8 +1277,9 @@ def pull_all_vra(client, config, root_dir):
         for cs in matching_css:
             name = cs.get("name")
             try:
+                full_cs = client.get_catalog_source(cs["id"]) or cs
                 with open(os.path.join(cs_dir, f"{name}.json"), "w", encoding="utf-8") as f:
-                    json.dump(cs, f, indent=4, ensure_ascii=False)
+                    json.dump(full_cs, f, indent=4, ensure_ascii=False)
                 logger.info(f"Successfully pulled Catalog Source '{name}'")
             except Exception as e:
                 logger.error(f"Failed to save Catalog Source '{name}': {e}")
@@ -1330,8 +1296,9 @@ def pull_all_vra(client, config, root_dir):
         for pol in matching_pols:
             name = pol.get("name")
             try:
+                full_pol = client.get_policy(pol["id"]) or pol
                 with open(os.path.join(pol_dir, f"{name}.json"), "w", encoding="utf-8") as f:
-                    json.dump(pol, f, indent=4, ensure_ascii=False)
+                    json.dump(full_pol, f, indent=4, ensure_ascii=False)
                 logger.info(f"Successfully pulled Catalog Policy '{name}'")
             except Exception as e:
                 logger.error(f"Failed to save Catalog Policy '{name}': {e}")
@@ -1348,8 +1315,9 @@ def pull_all_vra(client, config, root_dir):
         for sub in matching_subs:
             name = sub.get("name") or sub.get("id")
             try:
+                full_sub = client.get_subscription(sub["id"]) or sub
                 with open(os.path.join(sub_dir, f"{name}.json"), "w", encoding="utf-8") as f:
-                    json.dump(sub, f, indent=4, ensure_ascii=False)
+                    json.dump(full_sub, f, indent=4, ensure_ascii=False)
                 logger.info(f"Successfully pulled Event Broker Subscription '{name}'")
             except Exception as e:
                 logger.error(f"Failed to save Event Broker Subscription '{name}': {e}")
@@ -1446,8 +1414,8 @@ def push_all_vra(client, config, root_dir, dry_run=False):
                         logger.info(f"Updating blueprint '{bp_name}'...")
                         client.update_blueprint(existing_bp["id"], payload)
                     else:
-                        logger.info(f"Creating blueprint '{bp_name}'...")
-                        client.create_blueprint(payload)
+                        logger.error(f"Blueprint '{bp_name}' does not exist on target server. Please run Day-1 Provisioning first. Skipping.")
+                        continue
                         
                     # Optionally publish version if defined
                     version = bp_meta.get("latestVersion") or "1.0.0"
@@ -1501,11 +1469,11 @@ def push_all_vra(client, config, root_dir, dry_run=False):
                         logger.info(f"Updating ABX Action '{abx_name}'...")
                         client.update_abx_action(existing_act["id"], payload)
                     else:
-                        logger.info(f"Creating ABX Action '{abx_name}'...")
-                        client.create_abx_action(payload)
+                        logger.error(f"ABX Action '{abx_name}' does not exist on target server. Please run Day-1 Provisioning first. Skipping.")
+                        continue
                 except Exception as e:
                     logger.error(f"Failed to push ABX Action '{abx_name}': {e}")
-
+ 
     # Helper for simple flat JSON files push
     def push_flat_resources(sub_folder, list_func, create_func, update_func, label):
         folder_path = os.path.join(auto_root, sub_folder)
@@ -1549,11 +1517,10 @@ def push_all_vra(client, config, root_dir, dry_run=False):
                     logger.info(f"Updating {label} '{name}'...")
                     update_func(existing_item["id"], payload)
                 else:
-                    logger.info(f"Creating {label} '{name}'...")
-                    create_func(payload)
+                    logger.error(f"{label} '{name}' does not exist on target server. Please run Day-1 Provisioning first. Skipping.")
             except Exception as e:
                 logger.error(f"Failed to push {label} '{name}': {e}")
-
+ 
     if not dry_run:
         push_flat_resources("custom_resources", client.list_custom_resources, client.create_custom_resource, client.update_custom_resource, "Custom Resource")
         push_flat_resources("resource_actions", client.list_resource_actions, client.create_resource_action, client.update_resource_action, "Resource Action")
@@ -1564,6 +1531,13 @@ def push_all_vra(client, config, root_dir, dry_run=False):
         # Sync Custom Forms
         form_folder = os.path.join(auto_root, "custom_forms")
         if os.path.exists(form_folder) and os.path.isdir(form_folder):
+            catalog_items = []
+            try:
+                catalog_items = client.list_catalog_items()
+            except Exception as ce:
+                logger.error(f"Failed to list catalog items for form mapping: {ce}")
+            items_by_name = {i["name"]: i for i in catalog_items}
+
             for file in os.listdir(form_folder):
                 if not file.endswith(".json"):
                     continue
@@ -1572,8 +1546,16 @@ def push_all_vra(client, config, root_dir, dry_run=False):
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
                         payload = json.load(f)
-                    logger.info(f"Saving Custom Form for '{name}'...")
-                    client.create_or_update_custom_form(payload)
+                    
+                    if name in items_by_name:
+                        target_item = items_by_name[name]
+                        payload["sourceId"] = target_item["id"]
+                        payload["sourceType"] = target_item.get("type", {}).get("id")
+                        
+                        logger.info(f"Saving Custom Form for '{name}'...")
+                        client.create_or_update_custom_form(payload)
+                    else:
+                        logger.error(f"Catalog item '{name}' for Custom Form does not exist on target server. Please run Day-1 Provisioning first. Skipping.")
                 except Exception as e:
                     logger.error(f"Failed to push Custom Form for '{name}': {e}")
     else:

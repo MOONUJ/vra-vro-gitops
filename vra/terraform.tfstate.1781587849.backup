@@ -1,0 +1,137 @@
+{
+  "version": 4,
+  "terraform_version": "1.15.6",
+  "serial": 24,
+  "lineage": "17758e68-2084-e0ca-41c5-0b35ce315869",
+  "outputs": {},
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "vra_cloud_account_nsxt",
+      "name": "nsxt",
+      "provider": "provider[\"registry.terraform.io/vmware/vra\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "accept_self_signed_cert": true,
+            "associated_cloud_account_ids": [
+              "2af9fa16-2c77-4bd6-a627-635738c63ea1"
+            ],
+            "created_at": "2026-06-16",
+            "dc_id": "",
+            "description": "NSX-T Cloud Account managed by Terraform",
+            "hostname": "work01-nsx.gooddi.lab",
+            "id": "e6742fa6-88dc-4b19-bec1-8e946375b1cd",
+            "links": [
+              {
+                "href": "",
+                "hrefs": [
+                  "/iaas/api/cloud-accounts/2af9fa16-2c77-4bd6-a627-635738c63ea1"
+                ],
+                "rel": "associated-cloud-accounts"
+              },
+              {
+                "href": "/iaas/api/cloud-accounts/e6742fa6-88dc-4b19-bec1-8e946375b1cd",
+                "hrefs": [],
+                "rel": "self"
+              }
+            ],
+            "manager_mode": false,
+            "name": "work01-nsx.gooddi.lab",
+            "org_id": "2722874a-6ca3-4a92-b115-0b9cd804cdd1",
+            "owner": "",
+            "password": "Goodmit0802!",
+            "tags": [],
+            "updated_at": "2026-06-16",
+            "username": "admin"
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "vra_cloud_account_vsphere",
+      "name": "vsphere",
+      "provider": "provider[\"registry.terraform.io/vmware/vra\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "accept_self_signed_cert": true,
+            "associated_cloud_account_ids": [
+              "e6742fa6-88dc-4b19-bec1-8e946375b1cd"
+            ],
+            "created_at": "2026-06-16",
+            "dc_id": "",
+            "description": "vSphere Cloud Account managed by Terraform",
+            "enabled_regions": [
+              {
+                "external_region_id": "Datacenter:datacenter-3",
+                "id": "2a866070-3fde-4aa6-8318-73cda9f2335f",
+                "name": "Datacenter:datacenter-3"
+              }
+            ],
+            "hostname": "work01-vcsa01.gooddi.lab",
+            "id": "2af9fa16-2c77-4bd6-a627-635738c63ea1",
+            "links": [
+              {
+                "href": "",
+                "hrefs": [
+                  "/iaas/api/cloud-accounts/e6742fa6-88dc-4b19-bec1-8e946375b1cd"
+                ],
+                "rel": "associated-cloud-accounts"
+              },
+              {
+                "href": "",
+                "hrefs": [
+                  "/iaas/api/regions/2a866070-3fde-4aa6-8318-73cda9f2335f"
+                ],
+                "rel": "regions"
+              },
+              {
+                "href": "/iaas/api/cloud-accounts/2af9fa16-2c77-4bd6-a627-635738c63ea1",
+                "hrefs": [],
+                "rel": "self"
+              }
+            ],
+            "name": "work01-vcsa01.gooddi.lab",
+            "org_id": "2722874a-6ca3-4a92-b115-0b9cd804cdd1",
+            "owner": "",
+            "password": "Goodmit0802!",
+            "regions": [
+              "Datacenter:datacenter-3"
+            ],
+            "tags": [],
+            "updated_at": "2026-06-16",
+            "username": "administrator@vsphere.local"
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "vra_cloud_account_nsxt.nsxt"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

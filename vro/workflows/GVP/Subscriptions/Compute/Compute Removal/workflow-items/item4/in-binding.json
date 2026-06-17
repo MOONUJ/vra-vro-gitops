@@ -1,9 +1,0 @@
-{
-    "bind": [
-        {
-            "name": "isGpu",
-            "type": "boolean",
-            "export-name": "isGpu"
-        }
-    ]
-}

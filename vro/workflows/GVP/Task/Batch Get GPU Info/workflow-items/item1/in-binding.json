@@ -1,9 +1,0 @@
-{
-    "bind": [
-        {
-            "name": "time",
-            "type": "string",
-            "export-name": "time"
-        }
-    ]
-}

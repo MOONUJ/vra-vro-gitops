@@ -203,12 +203,14 @@ class VraClient:
         return response.json()
 
     def update_custom_resource(self, cr_id, payload):
-        """Updates custom resource."""
-        path = f"/form-service/api/custom/resource-types/{cr_id}"
-        response = self.request("PUT", path, json=payload)
+        """Updates custom resource using POST to collection endpoint."""
+        path = "/form-service/api/custom/resource-types"
+        payload_copy = dict(payload)
+        payload_copy["id"] = cr_id
+        response = self.request("POST", path, json=payload_copy)
         if response.status_code >= 400:
             response.raise_for_status()
-        return response.json()
+        return response.json() if response.text else {}
 
     # ==========================================
     # Resource Action API
@@ -240,12 +242,14 @@ class VraClient:
         return response.json()
 
     def update_resource_action(self, ra_id, payload):
-        """Updates resource action."""
-        path = f"/form-service/api/custom/resource-actions/{ra_id}"
-        response = self.request("PUT", path, json=payload)
+        """Updates resource action using POST to collection endpoint."""
+        path = "/form-service/api/custom/resource-actions"
+        payload_copy = dict(payload)
+        payload_copy["id"] = ra_id
+        response = self.request("POST", path, json=payload_copy)
         if response.status_code >= 400:
             response.raise_for_status()
-        return response.json()
+        return response.json() if response.text else {}
 
     # ==========================================
     # Catalog Source API
@@ -277,12 +281,14 @@ class VraClient:
         return response.json()
 
     def update_catalog_source(self, cs_id, payload):
-        """Updates catalog source."""
-        path = f"/catalog/api/admin/sources/{cs_id}"
-        response = self.request("PUT", path, json=payload)
+        """Updates catalog source using POST to collection endpoint."""
+        path = "/catalog/api/admin/sources"
+        payload_copy = dict(payload)
+        payload_copy["id"] = cs_id
+        response = self.request("POST", path, json=payload_copy)
         if response.status_code >= 400:
             response.raise_for_status()
-        return response.json()
+        return response.json() if response.text else {}
 
     # ==========================================
     # Policy API
@@ -314,12 +320,14 @@ class VraClient:
         return response.json()
 
     def update_policy(self, policy_id, payload):
-        """Updates policy."""
-        path = f"/policy/api/policies/{policy_id}"
-        response = self.request("PUT", path, json=payload)
+        """Updates policy using POST to collection endpoint."""
+        path = "/policy/api/policies"
+        payload_copy = dict(payload)
+        payload_copy["id"] = policy_id
+        response = self.request("POST", path, json=payload_copy)
         if response.status_code >= 400:
             response.raise_for_status()
-        return response.json()
+        return response.json() if response.text else {}
 
     # ==========================================
     # ABX Action API
@@ -385,22 +393,24 @@ class VraClient:
         response = self.request("POST", path, json=payload)
         if response.status_code >= 400:
             response.raise_for_status()
-        return response.json()
+        return response.json() if response.text else {}
 
     def update_subscription(self, sub_id, payload):
-        """Updates subscription."""
-        path = f"/event-broker/api/subscriptions/{sub_id}"
-        response = self.request("PUT", path, json=payload)
+        """Updates subscription using POST to collection endpoint."""
+        path = "/event-broker/api/subscriptions"
+        payload_copy = dict(payload)
+        payload_copy["id"] = sub_id
+        response = self.request("POST", path, json=payload_copy)
         if response.status_code >= 400:
             response.raise_for_status()
-        return response.json()
+        return response.json() if response.text else {}
 
     # ==========================================
     # Service Broker Catalog & Forms API
     # ==========================================
     def list_catalog_items(self):
-        """Lists all catalog items in Service Broker."""
-        path = "/catalog/api/items?size=1000"
+        """Lists all catalog items in Service Broker (Admin)."""
+        path = "/catalog/api/admin/items?size=1000"
         response = self.request("GET", path)
         if response.status_code >= 400:
             response.raise_for_status()
@@ -420,6 +430,48 @@ class VraClient:
         """Creates or updates a custom form layout schema."""
         path = "/form-service/api/forms"
         response = self.request("POST", path, json=payload)
+        if response.status_code >= 400:
+            response.raise_for_status()
+        return response.json() if response.text else {}
+
+    # ==========================================
+    # Naming Policy API
+    # ==========================================
+    def list_naming_policies(self):
+        """Lists naming policies."""
+        path = "/provisioning/naming"
+        response = self.request("GET", path)
+        if response.status_code >= 400:
+            response.raise_for_status()
+        res_json = response.json()
+        if isinstance(res_json, dict) and "content" in res_json:
+            return res_json["content"]
+        elif isinstance(res_json, list):
+            return res_json
+        return []
+
+    def get_naming_policy(self, naming_id):
+        """Gets naming policy details."""
+        path = f"/provisioning/naming/{naming_id}"
+        response = self.request("GET", path)
+        if response.status_code == 404:
+            return None
+        elif response.status_code >= 400:
+            response.raise_for_status()
+        return response.json()
+
+    def create_naming_policy(self, payload):
+        """Creates a naming policy."""
+        path = "/provisioning/naming"
+        response = self.request("POST", path, json=payload)
+        if response.status_code >= 400:
+            response.raise_for_status()
+        return response.json()
+
+    def update_naming_policy(self, naming_id, payload):
+        """Updates a naming policy."""
+        path = f"/provisioning/naming/{naming_id}"
+        response = self.request("PUT", path, json=payload)
         if response.status_code >= 400:
             response.raise_for_status()
         return response.json() if response.text else {}

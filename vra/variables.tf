@@ -15,6 +15,12 @@ variable "vra_insecure" {
   description = "Allow insecure connections (disable SSL validation)"
 }
 
+variable "vra_organization" {
+  type        = string
+  default     = "poscodx"
+  description = "Organization name for VCF Automation"
+}
+
 # vCenter / Cloud Account variables
 variable "vsphere_endpoint" {
   type        = string

@@ -2,6 +2,7 @@
 vra_url           = "https://poscodx-auto.gooddi.lab"
 vra_refresh_token = "YOUR_VRA_REFRESH_TOKEN_HERE"
 vra_insecure      = true
+vra_organization  = "poscodx"
 
 # vCenter Server Connection Info
 vsphere_endpoint  = "vcenter.gooddi.lab"

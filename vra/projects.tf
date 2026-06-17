@@ -1,5 +1,5 @@
 resource "vra_project" "project" {
-  name        = "admin"
+  name        = "admin-test"
   description = "Initial Infrastructure Project managed by Terraform"
 
   zone_assignments {

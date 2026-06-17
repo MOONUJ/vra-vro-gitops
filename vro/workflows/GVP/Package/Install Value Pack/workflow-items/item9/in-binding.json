@@ -1,9 +1,0 @@
-{
-    "bind": [
-        {
-            "name": "cloudAccounts",
-            "type": "Array/CompositeType(hostname:string,username:string,password:SecureString):cloudAccount",
-            "export-name": "cloudAccounts"
-        }
-    ]
-}
