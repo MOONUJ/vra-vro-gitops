@@ -7,7 +7,7 @@
 ## 디렉토리 구조
 
 ```
-poscodx/
+vra-vro-gitops/
 ├── .gitignore                     # Git 제외 설정 (config.json 및 로컬 캐시 제외)
 ├── gitops/                        # 라이프사이클 관리 스크립트 디렉토리
 │   ├── config.json.template       # 사용자 환경설정 템플릿 파일
@@ -76,8 +76,8 @@ poscodx/
 ## 파일 규칙 및 동기화 매핑 규칙
 
 ### 1. 코어(Core) vs 환경(Environment) 분할 저장소 모델
-* **`poscodx-core` 저장소**: 공통 도구(`gitops/` 및 `vra/`)만 존재하며 `auto/` 및 `vro/` 아래 하위 리소스 폴더는 빈 상태로 관리됩니다.
-* **환경별 저장소 (Fork)**: 각 환경 저장소(`poscodx-dev`, `poscodx-prod`)에서 `pull-all`을 최초 1회 수행하여 해당 타겟 서버의 UUID 메타데이터가 담긴 `auto/`, `vro/` 로컬 캐시 디렉토리를 구축해 코드 작업을 진행합니다.
+* **`vra-vro-gitops` 코어 저장소**: 공통 도구(`gitops/` 및 `vra/`)만 존재하며 `auto/` 및 `vro/` 아래 하위 리소스 폴더는 빈 상태로 관리됩니다.
+* **환경별 저장소 (Fork)**: 각 환경 저장소(`vra-vro-gitops-dev`, `vra-vro-gitops-prod`)에서 `pull-all`을 최초 1회 수행하여 해당 타겟 서버의 UUID 메타데이터가 담긴 `auto/`, `vro/` 로컬 캐시 디렉토리를 구축해 코드 작업을 진행합니다.
 
 ### 2. vRA Blueprints (Cloud Templates)
 * **blueprint.json**: 블루프린트의 ID, 설명, 태그, 버전 등의 메타데이터를 저장합니다.

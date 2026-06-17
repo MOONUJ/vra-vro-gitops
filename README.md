@@ -98,3 +98,9 @@ python3 gitops/vcf_gitops.py push-all
 ```bash
 python3 gitops/vcf_gitops.py status
 ```
+
+---
+
+## 📄 라이선스 (License)
+
+이 프로젝트는 [MIT License](LICENSE) 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참고해 주세요.
