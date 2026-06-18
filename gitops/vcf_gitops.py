@@ -176,7 +176,7 @@ def get_target_workflow_path(root_dir, category_path, workflow_name):
     # Fallback to lowercase w path
     return lower_path
 
-def pull_all(client, config, root_dir):
+def pull_all(client, config, root_dir, target_ids=None):
     """
     Sync from vRO server to local repository.
     """
@@ -223,6 +223,17 @@ def pull_all(client, config, root_dir):
 
     logger.info(f"Discovered {len(discovered_resources)} resources matching tag '{tag}' on the server.")
 
+    all_workflows = list(discovered_workflows)
+    all_actions = list(discovered_actions)
+    all_configs = list(discovered_configs)
+    all_resources = list(discovered_resources)
+
+    if target_ids is not None:
+        discovered_workflows = [wf for wf in discovered_workflows if wf["id"] in target_ids.get("Workflow", set())]
+        discovered_actions = [act for act in discovered_actions if act["id"] in target_ids.get("Action", set())]
+        discovered_configs = [cfg for cfg in discovered_configs if cfg["id"] in target_ids.get("ConfigurationElement", set())]
+        discovered_resources = [res for res in discovered_resources if res["id"] in target_ids.get("ResourceElement", set())]
+
     # 5. Create or update the package on the server with all discovered elements, and export it
     pkg_config = config.get("package", {})
     pkg_name = pkg_config.get("name")
@@ -230,10 +241,10 @@ def pull_all(client, config, root_dir):
     if pkg_name and pkg_local_path:
         pkg_full_path = os.path.join(root_dir, pkg_local_path)
         try:
-            workflow_ids = [wf["id"] for wf in discovered_workflows]
-            action_ids = [act["id"] for act in discovered_actions]
-            config_ids = [cfg["id"] for cfg in discovered_configs]
-            resource_ids = [res["id"] for res in discovered_resources]
+            workflow_ids = [wf["id"] for wf in all_workflows]
+            action_ids = [act["id"] for act in all_actions]
+            config_ids = [cfg["id"] for cfg in all_configs]
+            resource_ids = [res["id"] for res in all_resources]
             
             logger.info(f"Ensuring package '{pkg_name}' contains all elements on the server...")
             client.create_or_update_package(
@@ -435,7 +446,7 @@ def get_local_resources(root_dir):
             resource_dirs.append(parent)
     return resource_dirs
 
-def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
+def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False, target_ids=None):
     """
     Sync from local repository to vRO server.
     """
@@ -560,6 +571,12 @@ def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
         except Exception as e:
             logger.error(f"Failed to load resource at {res_dir}: {e}")
             continue
+
+    if target_ids is not None:
+        workflows_to_push = [wf for wf in workflows_to_push if wf["id"] in target_ids.get("Workflow", set())]
+        actions_to_push = [act for act in actions_to_push if act["id"] in target_ids.get("Action", set())]
+        configs_to_push = [cfg for cfg in configs_to_push if cfg["id"] in target_ids.get("ConfigurationElement", set())]
+        resources_to_push = [res for res in resources_to_push if res["id"] in target_ids.get("ResourceElement", set())]
 
     if dry_run:
         logger.info("[DRY RUN] Verification completed. The following workflows would be synced:")
@@ -716,10 +733,11 @@ def push_all(client, config, root_dir, dry_run=False, force_bootstrap=False):
         except Exception as e:
             logger.error(f"Failed to push resource {res_name} (ID: {res_id}): {e}")
 
-def status(client, config, root_dir):
+def get_vro_status(client, config, root_dir):
     """
     Compares the state of workflows, actions, configurations, and resources
     between the local Git repository and the remote vRO orchestrator.
+    Returns the results dictionary.
     """
     tag = config.get("gitops_tag")
     if not tag:
@@ -988,6 +1006,15 @@ def status(client, config, root_dir):
             else:
                 results["ResourceElement"]["IN_SYNC"].append((res_id, local_res_map[res_id]["name"]))
 
+    return results
+
+def status(client, config, root_dir):
+    """
+    Compares the state of workflows, actions, configurations, and resources
+    between the local Git repository and the remote vRO orchestrator.
+    """
+    results = get_vro_status(client, config, root_dir)
+
     # 4. Display results
     print("\n==================================================")
     print("             vRO GitOps Status Report             ")
@@ -1065,7 +1092,7 @@ def matches_tag(resource, tag):
                 
     return False
 
-def pull_all_vra(client, config, root_dir):
+def pull_all_vra(client, config, root_dir, target_names=None):
     """
     Sync from vRA server to local repository.
     """
@@ -1101,6 +1128,8 @@ def pull_all_vra(client, config, root_dir):
     try:
         blueprints = client.list_blueprints()
         matching_bps = [bp for bp in blueprints if is_project_allowed(bp.get("projectId"))]
+        if target_names is not None:
+            matching_bps = [bp for bp in matching_bps if bp["name"] in target_names.get("Blueprint", set())]
         logger.info(f"Discovered {len(matching_bps)} matching blueprints on the server.")
         bp_root = os.path.join(auto_root, "blueprints")
         os.makedirs(bp_root, exist_ok=True)
@@ -1132,11 +1161,13 @@ def pull_all_vra(client, config, root_dir):
                 logger.error(f"Failed to pull blueprint '{bp_name}': {e}")
     except Exception as e:
         logger.error(f"Failed to list blueprints: {e}")
-
+ 
     # 2. Pull ABX Actions
     try:
         abx_actions = client.list_abx_actions()
         matching_abxs = [act for act in abx_actions if is_project_allowed(act.get("projectId"))]
+        if target_names is not None:
+            matching_abxs = [act for act in matching_abxs if act["name"] in target_names.get("ABX Action", set())]
         logger.info(f"Discovered {len(matching_abxs)} matching ABX Actions on the server.")
         abx_root = os.path.join(auto_root, "abx")
         os.makedirs(abx_root, exist_ok=True)
@@ -1172,7 +1203,7 @@ def pull_all_vra(client, config, root_dir):
                 logger.error(f"Failed to pull ABX Action '{act_name}': {e}")
     except Exception as e:
         logger.error(f"Failed to list ABX Actions: {e}")
-
+ 
     def is_policy_allowed(policy):
         if not target_projects:
             return True
@@ -1220,11 +1251,13 @@ def pull_all_vra(client, config, root_dir):
             
         # If no project constraints are found, it's a global org-level policy
         return True
-
+ 
     # 3. Pull Custom Resources
     try:
         crs = client.list_custom_resources()
         matching_crs = crs
+        if target_names is not None:
+            matching_crs = [cr for cr in matching_crs if (cr.get("displayName") or cr.get("name")) in target_names.get("Custom Resource", set())]
         logger.info(f"Discovered {len(matching_crs)} matching Custom Resources on the server.")
         cr_dir = os.path.join(auto_root, "custom_resources")
         os.makedirs(cr_dir, exist_ok=True)
@@ -1239,11 +1272,13 @@ def pull_all_vra(client, config, root_dir):
                 logger.error(f"Failed to save Custom Resource '{name}': {e}")
     except Exception as e:
         logger.error(f"Failed to list Custom Resources: {e}")
-
+ 
     # 4. Pull Resource Actions
     try:
         ras = client.list_resource_actions()
         matching_ras = ras
+        if target_names is not None:
+            matching_ras = [ra for ra in matching_ras if (ra.get("displayName") or ra.get("name")) in target_names.get("Resource Action", set())]
         logger.info(f"Discovered {len(matching_ras)} matching Resource Actions on the server.")
         ra_dir = os.path.join(auto_root, "resource_actions")
         os.makedirs(ra_dir, exist_ok=True)
@@ -1258,7 +1293,7 @@ def pull_all_vra(client, config, root_dir):
                 logger.error(f"Failed to save Resource Action '{name}': {e}")
     except Exception as e:
         logger.error(f"Failed to list Resource Actions: {e}")
-
+ 
     # 5. Pull Catalog Sources
     try:
         css = client.list_catalog_sources()
@@ -1271,6 +1306,8 @@ def pull_all_vra(client, config, root_dir):
                     filtered_css.append(cs)
             matching_css = filtered_css
             
+        if target_names is not None:
+            matching_css = [cs for cs in matching_css if cs["name"] in target_names.get("Catalog Source", set())]
         logger.info(f"Discovered {len(matching_css)} matching Catalog Sources on the server.")
         cs_dir = os.path.join(auto_root, "catalog_sources")
         os.makedirs(cs_dir, exist_ok=True)
@@ -1285,11 +1322,13 @@ def pull_all_vra(client, config, root_dir):
                 logger.error(f"Failed to save Catalog Source '{name}': {e}")
     except Exception as e:
         logger.error(f"Failed to list Catalog Sources: {e}")
-
+ 
     # 6. Pull Policies
     try:
         pols = client.list_policies()
         matching_pols = [pol for pol in pols if is_policy_allowed(pol)]
+        if target_names is not None:
+            matching_pols = [pol for pol in matching_pols if pol["name"] in target_names.get("Catalog Policy", set())]
         logger.info(f"Discovered {len(matching_pols)} matching Catalog Policies on the server.")
         pol_dir = os.path.join(auto_root, "policies")
         os.makedirs(pol_dir, exist_ok=True)
@@ -1304,11 +1343,13 @@ def pull_all_vra(client, config, root_dir):
                 logger.error(f"Failed to save Catalog Policy '{name}': {e}")
     except Exception as e:
         logger.error(f"Failed to list Catalog Policies: {e}")
-
+ 
     # 7. Pull Subscriptions
     try:
         subs = client.list_subscriptions()
         matching_subs = [sub for sub in subs if not sub.get("system", False) and sub.get("type") == "RUNNABLE"]
+        if target_names is not None:
+            matching_subs = [sub for sub in matching_subs if (sub.get("name") or sub.get("id")) in target_names.get("Subscription", set())]
         logger.info(f"Discovered {len(matching_subs)} matching User Event Broker Subscriptions (RUNNABLE) on the server.")
         sub_dir = os.path.join(auto_root, "subscriptions")
         os.makedirs(sub_dir, exist_ok=True)
@@ -1323,7 +1364,7 @@ def pull_all_vra(client, config, root_dir):
                 logger.error(f"Failed to save Event Broker Subscription '{name}': {e}")
     except Exception as e:
         logger.error(f"Failed to list Event Broker Subscriptions: {e}")
-
+ 
     # 8. Pull Custom Forms
     try:
         items = client.list_catalog_items()
@@ -1339,6 +1380,9 @@ def pull_all_vra(client, config, root_dir):
             item_name = item.get("name")
             item_type = item.get("type", {}).get("id")
             
+            if target_names is not None and item_name not in target_names.get("Custom Form", set()):
+                continue
+                
             try:
                 form_data = client.get_custom_form(item_type, item_id)
                 if form_data and form_data.get("status") == "ON":
@@ -1352,7 +1396,7 @@ def pull_all_vra(client, config, root_dir):
     except Exception as e:
         logger.error(f"Failed to list catalog items for custom forms: {e}")
 
-def push_all_vra(client, config, root_dir, dry_run=False):
+def push_all_vra(client, config, root_dir, dry_run=False, target_names=None):
     """
     Sync from local repository to vRA server.
     """
@@ -1395,6 +1439,9 @@ def push_all_vra(client, config, root_dir, dry_run=False):
                         
                     proj_name = bp_meta.get("projectName", "global")
                     if target_projects and proj_name not in target_projects:
+                        continue
+                        
+                    if target_names is not None and bp_name not in target_names.get("Blueprint", set()):
                         continue
                         
                     if dry_run:
@@ -1452,6 +1499,9 @@ def push_all_vra(client, config, root_dir, dry_run=False):
                     if target_projects and proj_name not in target_projects:
                         continue
                         
+                    if target_names is not None and abx_name not in target_names.get("ABX Action", set()):
+                        continue
+                        
                     if dry_run:
                         logger.info(f"[DRY RUN] Would sync ABX Action '{abx_name}' (Project: {proj_name})")
                         continue
@@ -1486,6 +1536,13 @@ def push_all_vra(client, config, root_dir, dry_run=False):
                 
             file_path = os.path.join(folder_path, file)
             name = os.path.splitext(file)[0]
+            
+            filter_label = label
+            if label == "Event Broker Subscription":
+                filter_label = "Subscription"
+            if target_names is not None and name not in target_names.get(filter_label, set()):
+                continue
+                
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     payload = json.load(f)
@@ -1537,12 +1594,16 @@ def push_all_vra(client, config, root_dir, dry_run=False):
             except Exception as ce:
                 logger.error(f"Failed to list catalog items for form mapping: {ce}")
             items_by_name = {i["name"]: i for i in catalog_items}
-
+ 
             for file in os.listdir(form_folder):
                 if not file.endswith(".json"):
                     continue
                 file_path = os.path.join(form_folder, file)
                 name = os.path.splitext(file)[0]
+                
+                if target_names is not None and name not in target_names.get("Custom Form", set()):
+                    continue
+                    
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
                         payload = json.load(f)
@@ -1568,19 +1629,29 @@ def push_all_vra(client, config, root_dir, dry_run=False):
             if os.path.exists(folder_path):
                 for file in os.listdir(folder_path):
                     if file.endswith(".json"):
-                        logger.info(f"[DRY RUN] Would sync {label} '{os.path.splitext(file)[0]}'")
+                        name = os.path.splitext(file)[0]
+                        filter_label = label
+                        if label == "Event Broker Subscription":
+                            filter_label = "Subscription"
+                        if target_names is not None and name not in target_names.get(filter_label, set()):
+                            continue
+                        logger.info(f"[DRY RUN] Would sync {label} '{name}'")
         
         # Dry Run for Custom Forms
         form_folder = os.path.join(auto_root, "custom_forms")
         if os.path.exists(form_folder) and os.path.isdir(form_folder):
             for file in os.listdir(form_folder):
                 if file.endswith(".json"):
-                    logger.info(f"[DRY RUN] Would sync Custom Form for '{os.path.splitext(file)[0]}'")
+                    name = os.path.splitext(file)[0]
+                    if target_names is not None and name not in target_names.get("Custom Form", set()):
+                        continue
+                    logger.info(f"[DRY RUN] Would sync Custom Form for '{name}'")
 
-def status_vra(client, config, root_dir):
+def get_vra_status(client, config, root_dir):
     """
     Compares the state of blueprints, ABX actions, Custom Resources, etc.,
     between the local Git repository and the remote vRA server.
+    Returns the results dictionary.
     """
     tag = config.get("gitops_tag")
     if not tag:
@@ -1588,7 +1659,6 @@ def status_vra(client, config, root_dir):
         sys.exit(1)
 
     target_projects = config.get("projects", [])
-    logger.info(f"--- Running Aria Automation GitOps Status Check for tag '{tag}' (Projects filter: {target_projects}) ---")
     
     auto_root = os.path.join(root_dir, "auto")
     
@@ -1891,6 +1961,15 @@ def status_vra(client, config, root_dir):
     compare_flats("Subscription", server_subs, local_subs)
     compare_flats("Custom Form", server_forms, local_forms)
 
+    return results
+
+def status_vra(client, config, root_dir):
+    """
+    Compares the state of blueprints, ABX actions, Custom Resources, etc.,
+    between the local Git repository and the remote vRA server.
+    """
+    results = get_vra_status(client, config, root_dir)
+
     # Display results
     print("\n==================================================")
     print("             vRA GitOps Status Report             ")
@@ -1931,9 +2010,145 @@ def status_vra(client, config, root_dir):
     print("vRA Summary: " + " | ".join(summary_parts))
     print("==================================================\n")
 
+def pull(client, config, root_dir):
+    """
+    Sync only modified or server-only elements from vRO server to local repository.
+    """
+    logger.info("Comparing server and local state for selective pull...")
+    results = get_vro_status(client, config, root_dir)
+    
+    target_ids = {
+        "Workflow": set(),
+        "Action": set(),
+        "ConfigurationElement": set(),
+        "ResourceElement": set()
+    }
+    
+    any_diff = False
+    for type_name in ["Workflow", "Action", "ConfigurationElement", "ResourceElement"]:
+        for item in results[type_name]["MODIFIED"]:
+            target_ids[type_name].add(item[0])
+            any_diff = True
+        for item in results[type_name]["SERVER_ONLY"]:
+            target_ids[type_name].add(item[0])
+            any_diff = True
+            
+    if not any_diff:
+        logger.info("All vRO elements are already in sync. Nothing to pull.")
+        return
+        
+    pull_all(client, config, root_dir, target_ids=target_ids)
+
+
+def pull_vra(client, config, root_dir):
+    """
+    Sync only modified or server-only elements from vRA server to local repository.
+    """
+    logger.info("Comparing server and local state for selective pull (vRA)...")
+    results = get_vra_status(client, config, root_dir)
+    
+    target_names = {
+        "Blueprint": set(),
+        "ABX Action": set(),
+        "Custom Resource": set(),
+        "Resource Action": set(),
+        "Catalog Source": set(),
+        "Catalog Policy": set(),
+        "Subscription": set(),
+        "Custom Form": set()
+    }
+    
+    any_diff = False
+    for type_name in target_names.keys():
+        for item in results[type_name]["MODIFIED"]:
+            target_names[type_name].add(item[0])
+            any_diff = True
+        for item in results[type_name]["SERVER_ONLY"]:
+            target_names[type_name].add(item[0])
+            any_diff = True
+            
+    if not any_diff:
+        logger.info("All vRA elements are already in sync. Nothing to pull.")
+        return
+        
+    pull_all_vra(client, config, root_dir, target_names=target_names)
+
+
+def push(client, config, root_dir, dry_run=False):
+    """
+    Sync only modified or local-only elements from local repository to vRO server.
+    """
+    if dry_run:
+        logger.info("Comparing server and local state for selective push (dry run)...")
+    else:
+        logger.info("Comparing server and local state for selective push...")
+        
+    results = get_vro_status(client, config, root_dir)
+    
+    target_ids = {
+        "Workflow": set(),
+        "Action": set(),
+        "ConfigurationElement": set(),
+        "ResourceElement": set()
+    }
+    
+    any_diff = False
+    for type_name in ["Workflow", "Action", "ConfigurationElement", "ResourceElement"]:
+        for item in results[type_name]["MODIFIED"]:
+            target_ids[type_name].add(item[0])
+            any_diff = True
+        for item in results[type_name]["LOCAL_ONLY"]:
+            target_ids[type_name].add(item[0])
+            any_diff = True
+            
+    if not any_diff:
+        logger.info("All vRO elements are already in sync. Nothing to push.")
+        return
+        
+    push_all(client, config, root_dir, dry_run=dry_run, force_bootstrap=False, target_ids=target_ids)
+
+
+def push_vra(client, config, root_dir, dry_run=False):
+    """
+    Sync only modified or local-only elements from local repository to vRA server.
+    """
+    if dry_run:
+        logger.info("Comparing server and local state for selective push (vRA - dry run)...")
+    else:
+        logger.info("Comparing server and local state for selective push (vRA)...")
+        
+    results = get_vra_status(client, config, root_dir)
+    
+    target_names = {
+        "Blueprint": set(),
+        "ABX Action": set(),
+        "Custom Resource": set(),
+        "Resource Action": set(),
+        "Catalog Source": set(),
+        "Catalog Policy": set(),
+        "Subscription": set(),
+        "Custom Form": set()
+    }
+    
+    any_diff = False
+    for type_name in target_names.keys():
+        for item in results[type_name]["MODIFIED"]:
+            target_names[type_name].add(item[0])
+            any_diff = True
+        for item in results[type_name]["LOCAL_ONLY"]:
+            target_names[type_name].add(item[0])
+            any_diff = True
+            
+    if not any_diff:
+        logger.info("All vRA elements are already in sync. Nothing to push.")
+        return
+        
+    push_all_vra(client, config, root_dir, dry_run=dry_run, target_names=target_names)
+
+
 def main():
     parser = argparse.ArgumentParser(description="VCF Automation & Orchestrator GitOps Sync Tool")
-    parser.add_argument("action", choices=["pull-all", "push-all", "status"], help="Sync action to perform")
+    parser.add_argument("action", choices=["pull-all", "push-all", "status", "pull", "push"], help="Sync action to perform")
     parser.add_argument("--dry-run", action="store_true", help="Validates files and configurations without calling server APIs")
     parser.add_argument("--bootstrap", action="store_true", help="Force imports the package file before applying code changes")
     
@@ -1947,9 +2162,27 @@ def main():
         if args.action == "push-all":
             push_all(None, config, root_dir, dry_run=True)
             push_all_vra(None, config, root_dir, dry_run=True)
+            return
+        elif args.action == "push":
+            # Set up clients to check state
+            vro_client = VroClient(
+                vcf_url=config["vcf_url"],
+                refresh_token=config["refresh_token"],
+                org=config.get("org", "default"),
+                verify_ssl=config.get("verify_ssl", False)
+            )
+            vra_client = VraClient(
+                vcf_url=config["vcf_url"],
+                refresh_token=config["refresh_token"],
+                org=config.get("org", "default"),
+                verify_ssl=config.get("verify_ssl", False)
+            )
+            push(vro_client, config, root_dir, dry_run=True)
+            push_vra(vra_client, config, root_dir, dry_run=True)
+            return
         else:
             logger.info("[DRY RUN] Operation verified.")
-        return
+            return
         
     # Set up clients
     vro_client = VroClient(
@@ -1969,9 +2202,15 @@ def main():
     if args.action == "pull-all":
         pull_all(vro_client, config, root_dir)
         pull_all_vra(vra_client, config, root_dir)
+    elif args.action == "pull":
+        pull(vro_client, config, root_dir)
+        pull_vra(vra_client, config, root_dir)
     elif args.action == "push-all":
         push_all(vro_client, config, root_dir, dry_run=False, force_bootstrap=args.bootstrap)
         push_all_vra(vra_client, config, root_dir, dry_run=False)
+    elif args.action == "push":
+        push(vro_client, config, root_dir, dry_run=False)
+        push_vra(vra_client, config, root_dir, dry_run=False)
     elif args.action == "status":
         status(vro_client, config, root_dir)
         status_vra(vra_client, config, root_dir)
