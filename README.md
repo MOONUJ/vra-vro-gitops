@@ -8,16 +8,16 @@
 
 ```mermaid
 graph TD
-    subgraph Day-0 : 인프라 IaC (Terraform)
+    subgraph "Day-0 : 인프라 IaC (Terraform)"
         TF[vra/] -->|IaC 프로비저닝| Infrastructure[Cloud Accounts, Zones, Networks, Storages, Projects]
     end
 
-    subgraph Day-1 : 논리적 카탈로그 & 패키징 (vcf_provision.py)
+    subgraph "Day-1 : 논리적 카탈로그 & 패키징 (vcf_provision.py)"
         Provision[gitops/vcf_provision.py] -->|backup / provision / restore| Artifacts[gitops/artifacts/ - vRO Package, vRA Config Zip, Manifest]
         Artifacts -->|초기 뼈대 구축| Servers[Target vRA/vRO Servers]
     end
 
-    subgraph Day-2 : 지속적 코드 동기화 (vcf_gitops.py)
+    subgraph "Day-2 : 지속적 코드 동기화 (vcf_gitops.py)"
         GitOps[gitops/vcf_gitops.py] -->|pull-all| Local[Local Workspace: auto/, vro/]
         Local -->|push-all: 오직 수정만 허용| Servers
     end
