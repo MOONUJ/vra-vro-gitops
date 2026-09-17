@@ -1,0 +1,13 @@
+apiVersion: gitops.vcf.example/v1alpha1
+kind: ReconciliationLoop
+metadata:
+  name: automation-drift-observer
+spec:
+  lifecycle: day2
+  products: [automation, orchestrator]
+  interval: 15m
+  mode: observe
+  retry:
+    maxAttempts: 3
+  approval:
+    requiredFor: [push, push-all, restore, terraform-apply]

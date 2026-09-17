@@ -4,10 +4,10 @@ data "vra_region" "vsphere_region" {
 }
 
 resource "vra_zone" "vsphere_zone" {
-  name             = "vsphere-cloud-zone"
-  description      = "vSphere Cloud Zone managed by Terraform"
+  name             = var.cloud_zone_name
+  description      = var.cloud_zone_description
   region_id        = data.vra_region.vsphere_region.id
-  placement_policy = "DEFAULT"
+  placement_policy = var.cloud_zone_placement_policy
 
   tags {
     key   = "env"

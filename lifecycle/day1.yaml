@@ -1,0 +1,24 @@
+apiVersion: gitops.vcf.example/v1alpha1
+kind: LifecycleManifest
+metadata:
+  name: day1-provisioning
+spec:
+  lifecycle: day1
+  purpose: 카탈로그 서비스와 신규 리소스 프로비저닝 개발
+  resources:
+    - path: content/automation/blueprints
+      product: automation
+    - path: content/automation/abx
+      product: automation
+    - path: content/automation/catalog_sources
+      product: automation
+    - path: content/automation/custom_forms
+      product: automation
+    - path: content/automation/custom_resources
+      product: automation
+    - path: content/orchestrator/workflows
+      product: orchestrator
+      usage: provisioning
+    - path: content/orchestrator/actions
+      product: orchestrator
+      usage: provisioning

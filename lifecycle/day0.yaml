@@ -1,0 +1,14 @@
+apiVersion: gitops.vcf.example/v1alpha1
+kind: LifecycleManifest
+metadata:
+  name: day0-foundation
+spec:
+  lifecycle: day0
+  purpose: Automation 인스턴스 온보딩과 서비스 제공 기반 구성
+  resources:
+    - path: instance.yaml
+      product: automation
+    - path: foundation/automation/terraform
+      product: automation
+    - path: content/orchestrator/packages
+      product: orchestrator

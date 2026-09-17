@@ -1,0 +1,4 @@
+interface:
+  display_name: "VCF GitOps 수명주기"
+  short_description: "VCF GitOps 템플릿과 인스턴스 수명주기 작업"
+  default_prompt: "$vcf-gitops-lifecycle을 사용해 템플릿 또는 인스턴스 저장소의 VCF GitOps 변경을 안전하게 계획하거나 구현해 주세요."

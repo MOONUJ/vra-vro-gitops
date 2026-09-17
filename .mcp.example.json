@@ -2,7 +2,7 @@
   "mcpServers": {
     "vcf-auto-mcp": {
       "command": "node",
-      "args": ["D:\\Github\\vcf-auto-mcp\\dist\\index.js"]
+      "args": ["/absolute/path/to/vcf-auto-mcp/dist/index.js"]
     }
   }
 }

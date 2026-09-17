@@ -1,0 +1,24 @@
+apiVersion: gitops.vcf.example/v1alpha1
+kind: LifecycleManifest
+metadata:
+  name: day2-operations
+spec:
+  lifecycle: day2
+  purpose: 기존 리소스의 변경, 운영, 정책과 remediation
+  resources:
+    - path: content/automation/resource_actions
+      product: automation
+    - path: content/automation/policies
+      product: automation
+    - path: content/automation/subscriptions
+      product: automation
+    - path: content/orchestrator/workflows
+      product: orchestrator
+      usage: operations
+    - path: content/orchestrator/actions
+      product: orchestrator
+      usage: operations
+    - path: content/orchestrator/configurations
+      product: orchestrator
+    - path: content/orchestrator/resources
+      product: orchestrator

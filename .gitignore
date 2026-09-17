@@ -1,3 +1,8 @@
+/config.json
+/.mcp.json
+/secrets.json
+/instance.local.yaml
+/secrets.local.json
 gitops/config.json
 gitops/token
 vco_openapi.json
@@ -16,5 +21,6 @@ __pycache__/
 *.tfvars
 *.tfstate
 *.tfstate.backup
+*.tfstate.*.backup
+foundation/automation/terraform/generated.auto.tfvars.json
 .terraform.lock.hcl
-
