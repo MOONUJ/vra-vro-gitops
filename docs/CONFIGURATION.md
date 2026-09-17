@@ -81,7 +81,7 @@ Plan artifact의 작업, before/after, 대상 인스턴스, 만료 시각과 has
   --approve-plan <plan-hash>
 ```
 
-`apply`는 원격 변경이며 추적된 `instance.yaml`이 있는 인스턴스 모드에서만 실행됩니다. 삭제는 `plan --delete Kind:<remote-id>`와 `apply --approve-delete Kind:<remote-id>` 양쪽에 정확한 대상을 명시해야 합니다. plan과 실행 결과는 `.gitops/` 아래의 로컬 증거이며 Git에 커밋하지 않습니다.
+`apply`는 원격 변경이며 추적된 `instance.yaml`이 있는 인스턴스 모드에서만 실행됩니다. CREATE는 `apply --approve-create Kind:<manifest-name>`으로 정확한 대상을 별도 승인해야 합니다. 삭제는 `plan --delete Kind:<remote-id>`와 `apply --approve-delete Kind:<remote-id>` 양쪽에 정확한 대상을 명시해야 합니다. plan과 실행 결과는 `.gitops/` 아래의 로컬 증거이며 Git에 커밋하지 않습니다.
 
 초기 native mutation 지원 범위는 다음과 같습니다.
 

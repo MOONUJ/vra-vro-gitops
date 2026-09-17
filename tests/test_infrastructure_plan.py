@@ -259,7 +259,14 @@ class InfrastructurePlanServiceTest(unittest.TestCase):
             path = self._write_manifest(root / "infrastructure", desired, remote_id=None)
             service = self._service(root, client)
             _, artifact, _ = service.create_plan()
-            _, result = service.apply(artifact, artifact["metadata"]["planHash"])
+            with self.assertRaises(InfrastructureError):
+                service.apply(artifact, artifact["metadata"]["planHash"])
+
+            _, result = service.apply(
+                artifact,
+                artifact["metadata"]["planHash"],
+                approved_creations=[("Project", "application-team")],
+            )
             manifest = yaml.safe_load(path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["metadata"]["remoteId"], "project-new")
             self.assertEqual(result["spec"]["operations"][0]["status"], "VERIFIED")

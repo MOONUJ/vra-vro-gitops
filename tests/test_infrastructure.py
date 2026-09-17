@@ -25,6 +25,11 @@ class FakeResponse:
         return self._payload
 
 
+class InvalidJsonResponse(FakeResponse):
+    def json(self):
+        raise ValueError("invalid json")
+
+
 class FakeClient:
     def __init__(self, responses):
         self.responses = list(responses)
@@ -38,6 +43,11 @@ class FakeClient:
 
 
 class InfrastructureServiceTest(unittest.TestCase):
+    def test_invalid_json_response_is_reported_as_infrastructure_error(self):
+        service = InfrastructureService(FakeClient([InvalidJsonResponse(200)]), "infrastructure")
+        with self.assertRaisesRegex(InfrastructureError, "유효한 JSON"):
+            service.discover_kind("Project")
+
     def test_adopt_requires_explicit_resource_or_all(self):
         parser = build_parser()
         with contextlib.redirect_stderr(io.StringIO()):

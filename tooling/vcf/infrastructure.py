@@ -130,7 +130,10 @@ class InfrastructureService:
             raise InfrastructureError(f"권한 부족으로 {operation}을 완료하지 못했습니다. 불완전한 결과는 사용하지 않습니다.")
         if response.status_code >= 400:
             raise InfrastructureError(f"{operation} 실패: HTTP {response.status_code}: {response.text}")
-        value = response.json()
+        try:
+            value = response.json()
+        except ValueError as exc:
+            raise InfrastructureError(f"{operation} 응답이 유효한 JSON이 아닙니다.") from exc
         if not isinstance(value, dict):
             raise InfrastructureError(f"{operation} 응답이 JSON 객체가 아닙니다.")
         return value

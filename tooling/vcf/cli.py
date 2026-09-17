@@ -86,6 +86,13 @@ def build_parser():
     apply = subparsers.add_parser("apply", help="승인된 plan 적용 후 원격 상태 검증")
     apply.add_argument("--plan", required=True, help="plan artifact JSON 경로")
     apply.add_argument("--approve-plan", required=True, metavar="HASH", help="명시적으로 승인할 plan hash")
+    apply.add_argument(
+        "--approve-create",
+        action="append",
+        type=_parse_resource,
+        metavar="Kind:name",
+        help="CREATE할 manifest 대상을 별도로 승인",
+    )
     apply.add_argument("--approve-delete", action="append", type=_parse_resource, metavar="Kind:remote-id")
     return parser
 
@@ -204,7 +211,12 @@ def main(argv=None):
         if args.action == "apply":
             require_instance_mode(repository_context, "apply")
             artifact = plan_service.load_plan(args.plan)
-            result_path, result = plan_service.apply(artifact, args.approve_plan, args.approve_delete or [])
+            result_path, result = plan_service.apply(
+                artifact,
+                args.approve_plan,
+                args.approve_create or [],
+                args.approve_delete or [],
+            )
             for item in result["spec"]["operations"]:
                 print(f"{item['status']:10} {item['action']:6} {item['kind']}/{item['name']}")
             print(f"apply 결과: {result_path.resolve()}")

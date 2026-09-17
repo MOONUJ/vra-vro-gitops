@@ -167,7 +167,7 @@ Automation의 지원 대상 리소스를 모두 채택하려면 먼저 전체 pr
 
 Apply는 추적된 `instance.yaml`이 있는 인스턴스 저장소에서만 실행되며, plan 생성 후 manifest나 원격 상태가 바뀌었거나 plan이 만료되면 거부됩니다. 성공한 작업도 원격을 다시 조회하여 원하는 상태와 일치해야 `VERIFIED`가 됩니다. 결과는 `.gitops/apply-results/`에 기록되고 같은 plan은 다시 실행할 수 없습니다.
 
-파일 삭제만으로 원격 삭제를 추론하지 않습니다. 삭제가 필요한 경우 `plan --delete Kind:<remote-id>`로 대상을 명시하고 apply에도 같은 `--approve-delete Kind:<remote-id>`를 별도로 전달해야 합니다.
+신규 리소스 생성은 apply에 `--approve-create Kind:<manifest-name>`을 별도로 전달해야 합니다. 파일 삭제만으로 원격 삭제를 추론하지 않습니다. 삭제가 필요한 경우 `plan --delete Kind:<remote-id>`로 대상을 명시하고 apply에도 같은 `--approve-delete Kind:<remote-id>`를 별도로 전달해야 합니다.
 
 `foundation/automation/terraform/`은 이전 또는 선택적 greenfield 호환 경로입니다. `management.infrastructure: native`인 저장소에서는 같은 리소스를 Terraform과 동시에 관리하지 않습니다.
 

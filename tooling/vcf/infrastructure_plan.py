@@ -508,10 +508,19 @@ class InfrastructurePlanService:
         self,
         artifact: dict[str, Any],
         approval: str,
+        approved_creations: Iterable[tuple[str, str]] = (),
         approved_deletions: Iterable[tuple[str, str]] = (),
     ) -> tuple[Path, dict[str, Any]]:
         self.validate_artifact(artifact)
         plan_hash = artifact["metadata"]["planHash"]
+        approved_creations = set(approved_creations)
+        required_creations = {
+            (operation["kind"], operation["name"])
+            for operation in artifact["spec"]["operations"]
+            if operation["action"] == "CREATE"
+        }
+        if approved_creations != required_creations:
+            raise InfrastructureError("생성 승인은 plan의 CREATE 대상과 정확히 일치해야 합니다.")
         approved_deletions = set(approved_deletions)
         required_deletions = {
             (operation["kind"], operation["remoteId"])
