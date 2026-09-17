@@ -14,7 +14,6 @@
 ```text
 vcf-automation-gitops-template/
 ├── .template-version                    # 템플릿 기준 버전
-├── .mcp.example.json                    # 선택적 로컬 MCP 연결 예시
 ├── instance.example.yaml                 # 인스턴스 정의 예시
 ├── instance.yaml                         # 생성된 저장소에서 추적, 템플릿에는 없음
 ├── secrets.example.json                  # 비밀값 형식 예시
@@ -70,7 +69,7 @@ vcf-automation-gitops-template/
 
 | 이전 경로 | 새 경로 | 전환 결과 |
 | --- | --- | --- |
-| `vra/` | `foundation/automation/terraform/` | 템플릿 소스 이동 완료, 로컬 state는 별도 이전 필요 |
+| `vra/` | `foundation/automation/terraform/` | 템플릿 소스 이동 후 이전 로컬 디렉터리 제거 완료 |
 | `auto/` | `content/automation/` | sync 도구가 새 경로 사용 |
 | `vro/` | `content/orchestrator/` | sync와 package 경로 갱신 |
 | `gitops/artifacts/` | `releases/` | release 도구 기본 출력 변경 |

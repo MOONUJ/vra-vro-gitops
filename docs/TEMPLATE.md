@@ -11,7 +11,6 @@
 - 디렉터리 구조와 lifecycle manifest
 - Terraform, sync, release와 bootstrap 도구
 - `instance.example.yaml`, `secrets.example.json`
-- 로컬 도구 연결을 위한 `.mcp.example.json`
 - AGENTS, Skill, Loop 계약
 - 공통 테스트와 문서
 - `.template-version`
@@ -19,7 +18,6 @@
 ## 템플릿에 포함하지 않는 것
 
 - 실제 endpoint가 담긴 `instance.yaml`
-- 개발자 장비 경로가 담긴 `.mcp.json`
 - 자격 증명, token, 인증서
 - Terraform state와 plan
 - 특정 Automation에서 import한 콘텐츠
