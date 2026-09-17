@@ -39,8 +39,6 @@ terraform -chdir=foundation/automation/terraform plan
 
 생성되는 `foundation/automation/terraform/generated.auto.tfvars.json`에는 비밀값이 포함되므로 Git에서 제외됩니다.
 
-## 호환 설정
+## 자동화 실행 환경
 
-도구는 새 분리 설정을 우선합니다. `secrets.json`이 아직 준비되지 않은 기존 저장소에서는 루트 `config.json`, 그다음 `gitops/config.json`을 fallback으로 읽습니다. 새 자동화와 문서에서는 legacy 설정을 사용하지 않습니다.
-
-CI/CD와 장기 실행 loop에서는 `secrets.json`을 저장소에 배포하기보다 secret manager에서 실행 시점에 주입하는 방식을 권장합니다.
+단일 `config.json` 형식과 `gitops/` 호환 경로는 지원하지 않습니다. CI/CD와 장기 실행 loop에서는 `secrets.json`을 저장소에 배포하기보다 secret manager에서 실행 시점에 주입하는 방식을 권장합니다.

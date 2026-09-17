@@ -38,7 +38,6 @@ vcf-automation-gitops-template/
 ├── tooling/template/bootstrap.py         # instance.yaml 초기화
 ├── releases/                             # 불변 릴리스 아티팩트
 ├── automation/loops/                     # 승인 기반 loop 정의
-├── gitops/                               # 이전 CLI 호환 wrapper와 로컬 legacy 설정
 ├── .agents/skills/                       # 저장소 전용 Codex 스킬
 ├── tests/
 └── docs/
@@ -67,15 +66,13 @@ vcf-automation-gitops-template/
 
 서버의 카테고리 경로를 보존하고 ID·timestamp 같은 휘발 필드는 비교 전에 정규화합니다.
 
-## 호환 경로
+## 이전 경로 매핑
 
-| 이전 경로 | 새 경로 | 호환 방식 |
+| 이전 경로 | 새 경로 | 전환 결과 |
 | --- | --- | --- |
-| `vra/` | `foundation/automation/terraform/` | 로컬 state는 이전 경로에 남기고 새 작업 디렉터리로 재초기화 |
+| `vra/` | `foundation/automation/terraform/` | 템플릿 소스 이동 완료, 로컬 state는 별도 이전 필요 |
 | `auto/` | `content/automation/` | sync 도구가 새 경로 사용 |
 | `vro/` | `content/orchestrator/` | sync와 package 경로 갱신 |
 | `gitops/artifacts/` | `releases/` | release 도구 기본 출력 변경 |
-| `gitops/vcf_gitops.py` | `tooling/vcf/vcf_sync.py` | wrapper 유지 |
-| `gitops/vcf_provision.py` | `tooling/vcf/vcf_release.py` | wrapper 유지 |
 
-기존 `gitops/config.json`은 전환 기간의 fallback으로만 지원합니다. 생성된 저장소는 `instance.yaml`과 `secrets.json`을 사용합니다. 템플릿에서 실제 연동을 시험할 때는 Git에서 제외되는 `instance.local.yaml`과 `secrets.local.json`을 명령 옵션으로 전달합니다.
+이전 `gitops/` 호환 계층과 단일 `config.json` 형식은 지원하지 않습니다. 생성된 저장소는 `instance.yaml`과 `secrets.json`을 사용합니다. 템플릿에서 실제 연동을 시험할 때는 Git에서 제외되는 `instance.local.yaml`과 `secrets.local.json`을 명령 옵션으로 전달합니다.

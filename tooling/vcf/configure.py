@@ -17,11 +17,10 @@ def main():
     parser.add_argument("action", choices=["validate", "terraform"])
     parser.add_argument("--instance", default=str(REPOSITORY_ROOT / "instance.yaml"))
     parser.add_argument("--secrets", default=str(REPOSITORY_ROOT / "secrets.json"))
-    parser.add_argument("--config", help="호환용 이전 단일 JSON 설정")
     parser.add_argument("--output", default=str(DEFAULT_TERRAFORM_OUTPUT))
     args = parser.parse_args()
     try:
-        config = load_source_config(args.instance, args.secrets, args.config)
+        config = load_source_config(args.instance, args.secrets)
         runtime = normalize_runtime_config(config)
         terraform_variables = build_terraform_variables(config)
         if args.action == "validate":

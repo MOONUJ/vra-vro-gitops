@@ -15,7 +15,7 @@ description: VCF Automation GitOps 템플릿과 Automation 한 대당 하나인 
 2. 현재 작업 대상이 공통 템플릿인지 생성된 인스턴스 저장소인지 확인한다.
 3. 작업을 서비스 수명주기와 전달 기능으로 각각 분류한다.
 4. `instance.yaml`, 콘텐츠, 도구, 원격 상태 중 어느 계약이 바뀌는지 확인한다.
-5. 경로·payload·설정·명령 변경 전에 호출자와 호환 wrapper를 조사한다.
+5. 경로·payload·설정·명령 변경 전에 호출자를 조사한다.
 
 ## 서비스 수명주기
 
@@ -41,7 +41,7 @@ Workflow와 Action처럼 여러 단계에서 사용되는 콘텐츠는 복제하
 - `instance.yaml`에는 비밀 없는 endpoint, 조직, GitOps 범위와 인프라 원하는 상태를 기록한다.
 - `secrets.json`에는 refresh token과 외부 시스템 자격 증명만 기록하고 커밋하지 않는다.
 - 설정 스키마를 바꾸면 loader, 예시, 문서와 테스트를 함께 갱신한다.
-- 기존 단일 JSON 설정은 호환 경로로만 유지하고 새 사용법으로 안내하지 않는다.
+- 단일 `config.json`과 `gitops/` 호환 경로를 다시 도입하지 않는다.
 
 ## 브랜치
 

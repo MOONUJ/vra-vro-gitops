@@ -9,8 +9,6 @@ import yaml
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INSTANCE_PATH = REPOSITORY_ROOT / "instance.yaml"
 DEFAULT_SECRETS_PATH = REPOSITORY_ROOT / "secrets.json"
-ROOT_LEGACY_CONFIG_PATH = REPOSITORY_ROOT / "config.json"
-LEGACY_CONFIG_PATH = REPOSITORY_ROOT / "gitops" / "config.json"
 SUPPORTED_SCHEMA_VERSION = 1
 
 
@@ -49,13 +47,6 @@ def _load_yaml(path):
     if not isinstance(value, dict):
         raise ConfigError(f"설정 최상위 값은 객체여야 합니다: {path}")
     return value
-
-
-def load_legacy_config(config_path):
-    path = Path(config_path)
-    if not path.is_file():
-        raise ConfigError(f"설정 파일을 찾을 수 없습니다: {path}")
-    return _load_json(path)
 
 
 def merge_instance_and_secrets(instance, secrets):
@@ -98,17 +89,12 @@ def merge_instance_and_secrets(instance, secrets):
     }
 
 
-def load_source_config(instance_path=None, secrets_path=None, legacy_config_path=None):
-    """분리 설정을 우선하고, 없으면 이전 단일 JSON 설정으로 전환한다."""
-    if legacy_config_path:
-        return load_legacy_config(legacy_config_path)
+def load_source_config(instance_path=None, secrets_path=None):
+    """인스턴스 정의와 로컬 비밀값을 읽어 내부 공통 형식으로 합친다."""
     instance_path = Path(instance_path or DEFAULT_INSTANCE_PATH)
     secrets_path = Path(secrets_path or DEFAULT_SECRETS_PATH)
     if instance_path.is_file() and secrets_path.is_file():
         return merge_instance_and_secrets(_load_yaml(instance_path), _load_json(secrets_path))
-    for legacy_path in (ROOT_LEGACY_CONFIG_PATH, LEGACY_CONFIG_PATH):
-        if legacy_path.is_file():
-            return load_legacy_config(legacy_path)
     if instance_path.is_file():
         raise ConfigError(f"비밀값 파일이 없습니다: {secrets_path}. secrets.example.json을 secrets.json으로 복사하세요.")
     raise ConfigError(f"인스턴스 정의를 찾을 수 없습니다: {instance_path}")
@@ -116,17 +102,6 @@ def load_source_config(instance_path=None, secrets_path=None, legacy_config_path
 
 def normalize_runtime_config(config):
     """공통 형식을 release/sync 도구가 사용하는 평면 구조로 변환한다."""
-    if "automation" not in config:
-        for key in ("vcf_url", "refresh_token"):
-            if key not in config:
-                raise ConfigError(f"기존 설정에 필수 값이 없습니다: {key}")
-        normalized = dict(config)
-        package = dict(normalized.get("package", {}))
-        local_path = package.get("local_path")
-        if isinstance(local_path, str) and local_path.startswith("vro/"):
-            package["local_path"] = f"content/orchestrator/{local_path.removeprefix('vro/')}"
-            normalized["package"] = package
-        return normalized
     if config.get("schema_version") != SUPPORTED_SCHEMA_VERSION:
         raise ConfigError(f"지원하지 않는 schema_version입니다: {config.get('schema_version')!r}")
     automation = _required(config, "automation")
@@ -141,15 +116,8 @@ def normalize_runtime_config(config):
         "package": _required(config, "orchestrator.package"),
     }
 
-
-def load_config():
-    return normalize_runtime_config(load_source_config())
-
-
 def build_terraform_variables(config):
     """공통 형식에서 Day-0 Terraform 입력을 생성한다."""
-    if "automation" not in config:
-        raise ConfigError("이전 단일 설정에는 infrastructure 정의가 없어 Terraform 입력을 만들 수 없습니다.")
     normalize_runtime_config(config)
     environment = _required(config, "environment")
     automation = _required(config, "automation")

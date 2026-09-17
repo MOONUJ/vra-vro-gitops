@@ -1,10 +1,7 @@
-/config.json
 /.mcp.json
 /secrets.json
 /instance.local.yaml
 /secrets.local.json
-gitops/config.json
-gitops/token
 vco_openapi.json
 *.pdf
 __pycache__/

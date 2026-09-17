@@ -110,7 +110,7 @@ terraform -chdir=foundation/automation/terraform apply
 .venv/bin/python tooling/vcf/vcf_release.py restore --version 1.0.0
 ```
 
-`restore`, `push`, `terraform apply`는 원격 환경을 변경하므로 대상과 계획을 검토하고 승인 후 실행합니다. 기존 `gitops/vcf_gitops.py`, `gitops/vcf_provision.py`는 전환 기간의 호환 wrapper입니다.
+`restore`, `push`, `terraform apply`는 원격 환경을 변경하므로 대상과 계획을 검토하고 승인 후 실행합니다.
 
 ## 주요 경로
 

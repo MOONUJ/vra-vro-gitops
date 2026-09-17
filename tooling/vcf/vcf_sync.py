@@ -2138,13 +2138,12 @@ def main():
     parser.add_argument("--bootstrap", action="store_true", help="Force imports the package file before applying code changes")
     parser.add_argument("--instance", default=str(REPOSITORY_ROOT / "instance.yaml"), help="Automation 인스턴스 정의 파일")
     parser.add_argument("--secrets", default=str(REPOSITORY_ROOT / "secrets.json"), help="로컬 비밀값 파일")
-    parser.add_argument("--config", help="호환용 이전 단일 JSON 설정")
 
     args = parser.parse_args()
 
     root_dir = str(REPOSITORY_ROOT)
     try:
-        config = normalize_runtime_config(load_source_config(args.instance, args.secrets, args.config))
+        config = normalize_runtime_config(load_source_config(args.instance, args.secrets))
     except ConfigError as exc:
         logger.error(f"설정 오류: {exc}")
         sys.exit(1)

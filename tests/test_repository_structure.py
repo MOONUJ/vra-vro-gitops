@@ -33,6 +33,9 @@ class RepositoryStructureTest(unittest.TestCase):
         for relative_path in required_paths:
             self.assertTrue((REPOSITORY_ROOT / relative_path).exists(), relative_path)
 
+    def test_legacy_gitops_directory_is_absent(self):
+        self.assertFalse((REPOSITORY_ROOT / "gitops").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
