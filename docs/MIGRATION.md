@@ -12,14 +12,17 @@
 - 릴리스 기본 위치를 `releases/`로 이동
 - 기존 `gitops/` wrapper와 legacy 단일 설정 제거
 - Day-0/1/2 lifecycle manifest 추가
+- `v1alpha2` 인스턴스 설정과 리소스별 native 인프라 manifest 도입
+- read-only `discover`, 선택적 `adopt`, `validate`, `status` CLI 도입
 
 ## 남은 작업
 
 1. `vcf_sync.py`와 `vcf_release.py`를 import 가능한 하위 패키지로 분리
-2. `import/adopt` 전용 명령과 민감정보 검사 추가
-3. 신규 Automation용 local-content release build 명령 추가
-4. lifecycle manifest 스키마 검증 추가
-5. JSON status/plan 출력과 승인 가능한 변경 계획 도입
-6. observe-only loop부터 단계적으로 구현
+2. native 인프라 plan 스키마와 승인 hash 도입
+3. pull-preview와 명시적 accept 흐름 추가
+4. Project/Profile부터 제한적 apply와 verify 구현
+5. 신규 Automation용 local-content release build 명령 추가
+6. lifecycle manifest 스키마 검증 추가
+7. observe-only loop부터 단계적으로 구현
 
-이전 `vra/`의 로컬 Terraform state, tfvars와 provider cache는 템플릿 전환 과정에서 제거했습니다. 기존 Automation을 채택하는 새 저장소는 별도의 backend와 state import 계획을 준비해야 합니다. 연결 전 plan은 기존 리소스를 신규 생성 대상으로 표시할 수 있으므로 apply하지 않습니다.
+이전 `vra/`의 로컬 Terraform state, tfvars와 provider cache는 템플릿 전환 과정에서 제거했습니다. Terraform 구성은 이전/선택적 greenfield 호환 경로로 남아 있으나 `management.infrastructure: native`와 같은 리소스를 동시에 소유하지 않습니다.

@@ -18,10 +18,12 @@ class ConfigLoaderTest(unittest.TestCase):
         self.assertEqual(runtime["vcf_url"], "https://automation.example.com")
         self.assertEqual(runtime["projects"], ["example-project"])
 
-    def test_split_config_supports_terraform(self):
-        variables = build_terraform_variables(self.config)
-        self.assertEqual(variables["cloud_zone_name"], "example-cloud-zone")
-        self.assertFalse(variables["vra_insecure"])
+    def test_native_config_does_not_generate_terraform_input(self):
+        with self.assertRaises(ConfigError):
+            build_terraform_variables(self.config)
+
+    def test_native_management_mode_is_loaded(self):
+        self.assertEqual(self.config["automation"]["management"]["infrastructure"], "native")
 
     def test_missing_split_config_does_not_fallback(self):
         with self.assertRaises(ConfigError):

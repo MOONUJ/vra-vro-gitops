@@ -49,7 +49,7 @@ branch → local validation → PR → review → main merge
        → plan/dry-run → environment approval → apply → verify → tag
 ```
 
-`main`에는 직접 push와 force push를 금지하고 PR·검증·승인을 요구합니다. PR 브랜치에서 원격 Automation으로 자동 push하지 않습니다. Terraform 변경은 plan을, 콘텐츠 변경은 normalized diff를 검토합니다.
+`main`에는 직접 push와 force push를 금지하고 PR·검증·승인을 요구합니다. PR 브랜치에서 원격 Automation으로 자동 push하지 않습니다. native 인프라 변경은 status와 승인 가능한 plan을, Terraform 변경은 plan을, 콘텐츠 변경은 normalized diff를 검토합니다.
 
 ## Import와 drift
 

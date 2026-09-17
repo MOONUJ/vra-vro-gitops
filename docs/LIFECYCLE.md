@@ -12,7 +12,8 @@ Day는 CLI 명령의 종류가 아니라 Automation이 제공하는 서비스와
 
 - 기존 Automation을 가져와 Git baseline을 만든다.
 - 신규 Automation의 연결 정보와 관리 범위를 등록한다.
-- Terraform으로 Cloud Account, Zone, Profile, Project를 구성한다.
+- `infrastructure/` manifest로 Cloud Account, Zone, Profile, Project의 원하는 상태를 관리한다.
+- 기존 리소스는 discovery 후 선택적으로 adopt하고 `metadata.remoteId`로 원격 객체와 결합한다.
 - vRO package와 공통 Configuration을 bootstrap한다.
 
 ## Day-1
@@ -39,7 +40,8 @@ import/adopt → author → validate → sync → release → restore → observ
 
 - `vcf_sync.py`: status, pull, push, reconcile 기반
 - `vcf_release.py`: backup, version artifact, restore
-- `configure.py`: 인스턴스 검증과 Terraform 입력 생성
+- `cli.py`: Day-0 discovery, adopt, validate와 status
+- `configure.py`: 인스턴스 설정 검증과 이전 Terraform 입력 호환
 - 향후 loop: observe, plan, approval, apply, verify, record
 
 ## 불변 조건

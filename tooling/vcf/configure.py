@@ -22,10 +22,10 @@ def main():
     try:
         config = load_source_config(args.instance, args.secrets)
         runtime = normalize_runtime_config(config)
-        terraform_variables = build_terraform_variables(config)
         if args.action == "validate":
             print(f"설정 검증 완료: environment={config['environment']['name']}, vcf_url={runtime['vcf_url']}")
             return
+        terraform_variables = build_terraform_variables(config)
         output_path = Path(args.output).resolve()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", encoding="utf-8") as output_file:

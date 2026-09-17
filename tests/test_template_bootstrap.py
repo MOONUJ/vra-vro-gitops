@@ -1,4 +1,5 @@
 import json
+import stat
 import sys
 import tempfile
 import unittest
@@ -37,6 +38,7 @@ class TemplateBootstrapTest(unittest.TestCase):
             self.assertEqual(instance["spec"]["gitops"]["tag"], "lab")
             self.assertTrue(created)
             self.assertIn("automation", secrets)
+            self.assertEqual(stat.S_IMODE(secrets_path.stat().st_mode), 0o600)
 
     def test_refuses_to_overwrite_instance_by_default(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

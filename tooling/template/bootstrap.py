@@ -2,6 +2,7 @@
 """VCF Automation 인스턴스 저장소의 초기 설정 파일을 생성한다."""
 
 import argparse
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -39,6 +40,7 @@ def copy_secrets_example(source, destination):
         return False
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, destination)
+    os.chmod(destination, 0o600)
     return True
 
 

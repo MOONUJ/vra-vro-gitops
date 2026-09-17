@@ -3,6 +3,9 @@ kind: ReconciliationLoop
 metadata:
   name: automation-drift-observer
 spec:
+  enabled: false
+  repositoryMode: instance
+  instanceRef: CHANGE_ME
   lifecycle: day2
   products: [automation, orchestrator]
   interval: 15m
@@ -10,4 +13,4 @@ spec:
   retry:
     maxAttempts: 3
   approval:
-    requiredFor: [push, push-all, restore, terraform-apply]
+    requiredFor: [native-apply, push, push-all, restore, terraform-apply]

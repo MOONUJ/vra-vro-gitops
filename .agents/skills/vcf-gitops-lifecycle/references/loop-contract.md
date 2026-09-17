@@ -2,6 +2,17 @@
 
 reconciliation loop을 설계하거나 구현할 때만 이 문서를 읽는다.
 
+## 실행 대상 확인
+
+Loop 실행 전 다음 조건을 모두 만족해야 한다.
+
+- Loop 파일명이 `.example.yaml`로 끝나지 않는다.
+- `instance.yaml`이 Git에 추적되고 설정 검증을 통과한다.
+- `spec.enabled`가 `true`이고 `spec.repositoryMode`가 `instance`이다.
+- `spec.instanceRef`가 `instance.yaml`의 `metadata.name`과 일치한다.
+
+조건을 만족하지 않으면 observe도 실행하지 않고 설정 오류로 중단한다. `instance.local.yaml`이나 untracked `instance.yaml`을 Scheduled Loop의 대상으로 사용하지 않는다.
+
 ## 필수 상태 전이
 
 `observe → plan → validate → await-approval → apply → verify → record`

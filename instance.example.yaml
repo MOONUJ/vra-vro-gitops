@@ -1,5 +1,5 @@
 # 템플릿 예시입니다. 생성된 저장소에서는 instance.yaml로 복사해 값을 변경합니다.
-apiVersion: gitops.vcf.example/v1alpha1
+apiVersion: gitops.vcf.example/v1alpha2
 kind: AutomationInstance
 
 metadata:
@@ -13,43 +13,10 @@ spec:
   gitops:
     tag: example
     projects: [example-project]
+  management:
+    infrastructure: native
+    deletionPolicy: require-explicit-approval
   orchestrator:
     package:
       name: com.example.vcf
       localPath: content/orchestrator/packages/com.example.vcf.package
-  infrastructure:
-    vsphere:
-      cloudAccountName: example-vsphere
-      description: vSphere Cloud Account managed by Terraform
-      endpoint: vcenter.example.com
-      datacenter: Datacenter
-      regionName: Datacenter
-    nsxt:
-      cloudAccountName: example-nsxt
-      description: NSX-T Cloud Account managed by Terraform
-      endpoint: nsx.example.com
-    cloudZone:
-      name: example-cloud-zone
-      description: vSphere Cloud Zone managed by Terraform
-      placementPolicy: DEFAULT
-    networkProfile:
-      name: example-network-profile
-      description: Network Profile managed by Terraform
-      isolationType: NONE
-      fabricNetworkIds: []
-    storageProfile:
-      name: example-storage-profile
-      description: vSphere Storage Profile managed by Terraform
-      defaultItem: false
-      provisioningType: thin
-    imageProfile:
-      name: example-image-profile
-      description: Image Profile managed by Terraform
-      mappings:
-        - name: ubuntu
-          imageId: CHANGE_ME
-    project:
-      name: example-project
-      description: Infrastructure Project managed by Terraform
-      zonePriority: 1
-      maxInstances: 100

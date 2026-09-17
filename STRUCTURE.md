@@ -18,8 +18,15 @@ vcf-automation-gitops-template/
 ├── instance.yaml                         # 생성된 저장소에서 추적, 템플릿에는 없음
 ├── secrets.example.json                  # 비밀값 형식 예시
 ├── secrets.json                          # 실제 비밀값, Git 제외
+├── infrastructure/                       # 리소스별 Day-0 원하는 상태
+│   ├── cloud-accounts/
+│   ├── cloud-zones/
+│   ├── network-profiles/
+│   ├── storage-profiles/
+│   ├── image-profiles/
+│   └── projects/
 ├── foundation/
-│   └── automation/terraform/             # Day-0 기반 구성
+│   └── automation/terraform/             # 이전/선택적 Terraform 경로
 ├── content/
 │   ├── automation/                       # Blueprint, ABX, 정책 등
 │   └── orchestrator/                     # Workflow, Action, Package 등
@@ -29,6 +36,10 @@ vcf-automation-gitops-template/
 │   └── day2.yaml
 ├── tooling/vcf/
 │   ├── config_loader.py
+│   ├── infrastructure.py
+│   ├── infrastructure_plan.py            # 불변 plan, 승인, apply와 verify
+│   ├── cli.py
+│   ├── repository.py                     # 저장소 모드 판정과 실행 경계
 │   ├── configure.py
 │   ├── vra_client.py
 │   ├── vro_client.py
@@ -37,6 +48,7 @@ vcf-automation-gitops-template/
 ├── tooling/template/bootstrap.py         # instance.yaml 초기화
 ├── releases/                             # 불변 릴리스 아티팩트
 ├── automation/loops/                     # 승인 기반 loop 정의
+├── .gitops/                               # 로컬 discovery, plan과 apply 결과, Git 제외
 ├── .agents/skills/                       # 저장소 전용 Codex 스킬
 ├── tests/
 └── docs/
@@ -75,3 +87,7 @@ vcf-automation-gitops-template/
 | `gitops/artifacts/` | `releases/` | release 도구 기본 출력 변경 |
 
 이전 `gitops/` 호환 계층과 단일 `config.json` 형식은 지원하지 않습니다. 생성된 저장소는 `instance.yaml`과 `secrets.json`을 사용합니다. 템플릿에서 실제 연동을 시험할 때는 Git에서 제외되는 `instance.local.yaml`과 `secrets.local.json`을 명령 옵션으로 전달합니다.
+
+Day-0 리소스는 `infrastructure/{resource-type}/{name}.yaml`로 분리합니다. 기존 원격 리소스를 채택한 manifest는 `metadata.remoteId`로 원격 객체와 결합합니다. 원하는 상태는 `spec`에만 두며 timestamp, owner, HATEOAS 링크 같은 관측 필드는 기록하지 않습니다.
+
+`tooling/vcf/repository.py`는 추적된 `instance.yaml`을 기준으로 `template`, `ambiguous`, `instance` 실행 모드를 판정합니다. 템플릿과 모호한 모드의 실제 연동은 local 설정과 `.gitops/` 아래의 산출물만 허용하며, 향후 원격 `apply`는 `instance` 모드에서만 허용합니다. 이 경계는 문서 관례가 아니라 CLI가 검증하는 실행 계약입니다.

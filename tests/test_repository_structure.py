@@ -21,11 +21,15 @@ class RepositoryStructureTest(unittest.TestCase):
         required_paths = [
             ".template-version",
             "instance.example.yaml",
+            "infrastructure",
             "foundation/automation/terraform",
             "content/automation",
             "content/orchestrator",
             "tooling/vcf/vcf_sync.py",
             "tooling/vcf/vcf_release.py",
+            "tooling/vcf/cli.py",
+            "tooling/vcf/repository.py",
+            "tooling/vcf/infrastructure_plan.py",
             "releases",
             "automation/loops",
             "tooling/template/bootstrap.py",
@@ -35,6 +39,13 @@ class RepositoryStructureTest(unittest.TestCase):
 
     def test_legacy_gitops_directory_is_absent(self):
         self.assertFalse((REPOSITORY_ROOT / "gitops").exists())
+
+    def test_loop_example_is_disabled_and_instance_scoped(self):
+        loop_path = REPOSITORY_ROOT / "automation" / "loops" / "drift-observer.example.yaml"
+        loop = yaml.safe_load(loop_path.read_text(encoding="utf-8"))
+        self.assertFalse(loop["spec"]["enabled"])
+        self.assertEqual(loop["spec"]["repositoryMode"], "instance")
+        self.assertEqual(loop["spec"]["instanceRef"], "CHANGE_ME")
 
 
 if __name__ == "__main__":

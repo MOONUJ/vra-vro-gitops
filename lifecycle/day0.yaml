@@ -8,7 +8,7 @@ spec:
   resources:
     - path: instance.yaml
       product: automation
-    - path: foundation/automation/terraform
+    - path: infrastructure
       product: automation
     - path: content/orchestrator/packages
       product: orchestrator

@@ -9,7 +9,11 @@ import yaml
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INSTANCE_PATH = REPOSITORY_ROOT / "instance.yaml"
 DEFAULT_SECRETS_PATH = REPOSITORY_ROOT / "secrets.json"
-SUPPORTED_SCHEMA_VERSION = 1
+SUPPORTED_SCHEMA_VERSION = 2
+SUPPORTED_API_VERSIONS = {
+    "gitops.vcf.example/v1alpha1": 1,
+    "gitops.vcf.example/v1alpha2": 2,
+}
 
 
 class ConfigError(ValueError):
@@ -51,7 +55,8 @@ def _load_yaml(path):
 
 def merge_instance_and_secrets(instance, secrets):
     """추적 가능한 인스턴스 정의와 로컬 비밀값을 내부 공통 형식으로 합친다."""
-    if instance.get("apiVersion") != "gitops.vcf.example/v1alpha1":
+    api_version = instance.get("apiVersion")
+    if api_version not in SUPPORTED_API_VERSIONS:
         raise ConfigError(f"지원하지 않는 apiVersion입니다: {instance.get('apiVersion')!r}")
     if instance.get("kind") != "AutomationInstance":
         raise ConfigError(f"지원하지 않는 kind입니다: {instance.get('kind')!r}")
@@ -60,14 +65,10 @@ def merge_instance_and_secrets(instance, secrets):
     spec = _required(instance, "spec")
     gitops = _required(spec, "gitops")
     package = _required(spec, "orchestrator.package")
-    infrastructure = _required(spec, "infrastructure")
-    vsphere = dict(_required(infrastructure, "vsphere"))
-    nsxt = dict(_required(infrastructure, "nsxt"))
-    vsphere.update(username=_required(secrets, "vsphere.username"), password=_required(secrets, "vsphere.password"))
-    nsxt.update(username=_required(secrets, "nsxt.username"), password=_required(secrets, "nsxt.password"))
+    infrastructure = spec.get("infrastructure")
 
-    return {
-        "schema_version": SUPPORTED_SCHEMA_VERSION,
+    result = {
+        "schema_version": SUPPORTED_API_VERSIONS[api_version],
         "environment": {"name": _required(metadata, "name"), "tag": _required(spec, "environmentTag")},
         "automation": {
             "url": _required(spec, "endpoint"),
@@ -75,9 +76,20 @@ def merge_instance_and_secrets(instance, secrets):
             "refresh_token": _required(secrets, "automation.refresh_token"),
             "verify_ssl": spec.get("verifySsl", True),
             "gitops": {"tag": _required(gitops, "tag"), "projects": gitops.get("projects", [])},
+            "management": spec.get(
+                "management",
+                {"infrastructure": "terraform", "deletionPolicy": "require-explicit-approval"},
+            ),
         },
         "orchestrator": {"package": {"name": _required(package, "name"), "local_path": _required(package, "localPath")}},
-        "infrastructure": {
+        "infrastructure": None,
+    }
+    if infrastructure is not None:
+        vsphere = dict(_required(infrastructure, "vsphere"))
+        nsxt = dict(_required(infrastructure, "nsxt"))
+        vsphere.update(username=_required(secrets, "vsphere.username"), password=_required(secrets, "vsphere.password"))
+        nsxt.update(username=_required(secrets, "nsxt.username"), password=_required(secrets, "nsxt.password"))
+        result["infrastructure"] = {
             "vsphere": vsphere,
             "nsxt": nsxt,
             "cloud_zone": _required(infrastructure, "cloudZone"),
@@ -85,8 +97,8 @@ def merge_instance_and_secrets(instance, secrets):
             "storage_profile": _required(infrastructure, "storageProfile"),
             "image_profile": _required(infrastructure, "imageProfile"),
             "project": _required(infrastructure, "project"),
-        },
-    }
+        }
+    return result
 
 
 def load_source_config(instance_path=None, secrets_path=None):
@@ -102,7 +114,7 @@ def load_source_config(instance_path=None, secrets_path=None):
 
 def normalize_runtime_config(config):
     """공통 형식을 release/sync 도구가 사용하는 평면 구조로 변환한다."""
-    if config.get("schema_version") != SUPPORTED_SCHEMA_VERSION:
+    if config.get("schema_version") not in {1, SUPPORTED_SCHEMA_VERSION}:
         raise ConfigError(f"지원하지 않는 schema_version입니다: {config.get('schema_version')!r}")
     automation = _required(config, "automation")
     gitops = _required(config, "automation.gitops")
@@ -122,6 +134,8 @@ def build_terraform_variables(config):
     environment = _required(config, "environment")
     automation = _required(config, "automation")
     infrastructure = _required(config, "infrastructure")
+    if infrastructure is None:
+        raise ConfigError("native 인프라 모드에서는 Terraform 입력을 생성하지 않습니다.")
     vsphere = _required(infrastructure, "vsphere")
     nsxt = _required(infrastructure, "nsxt")
     cloud_zone = _required(infrastructure, "cloud_zone")

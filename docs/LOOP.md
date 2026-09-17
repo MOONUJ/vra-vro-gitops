@@ -2,6 +2,18 @@
 
 Loop는 단순 반복 실행이 아니라, 관찰한 상태를 원하는 상태에 안전하게 수렴시키는 제어 흐름입니다. 현재 저장소에는 loop 실행기가 없으며 이 문서는 구현 계약을 정의합니다.
 
+## 저장소 모드와 활성화
+
+템플릿에 포함된 Loop 정의는 인스턴스 저장소가 생성될 때 함께 제공되는 예시입니다. 다음 조건을 모두 만족하기 전에는 실행 대상으로 취급하지 않습니다.
+
+- 파일명이 `.example.yaml`로 끝나지 않음
+- `instance.yaml`이 Git에 추적되고 설정 검증을 통과함
+- `spec.enabled: true`
+- `spec.repositoryMode: instance`
+- `spec.instanceRef`가 `instance.yaml`의 `metadata.name`과 일치함
+
+템플릿 모드와 `instance.yaml`이 untracked인 모호한 모드에서는 Loop를 실행하지 않습니다. 템플릿의 실제 연결 시험에 사용하는 `instance.local.yaml`도 Scheduled Loop 대상이 아닙니다.
+
 ## 상태 머신
 
 ```mermaid
@@ -28,7 +40,7 @@ stateDiagram-v2
 2. **Plan**: drift를 Day, 제품, 환경, 위험도로 분류하고 실행 가능한 변경 집합을 만듭니다.
 3. **Validate**: 구문·스키마·참조·정책·dry-run을 통과해야 합니다.
 4. **AwaitApproval**: 원격 mutation은 명시적 승인 토큰 또는 승인된 실행 컨텍스트를 요구합니다.
-5. **Apply**: 승인된 변경 집합만 적용하며 범위를 실행 중 확대하지 않습니다.
+5. **Apply**: 승인된 변경 집합만 적용하며 범위를 실행 중 확대하지 않습니다. `metadata.remoteId`가 없는 manifest의 생성과 원격 삭제는 별도 명시적 승인을 요구합니다.
 6. **Verify**: 다시 관찰하여 기대 상태와 실제 상태가 수렴했는지 확인합니다.
 7. **Record**: 입력 hash, 대상, 명령, 결과, 검증 증거, 릴리스 버전을 남깁니다.
 
@@ -40,7 +52,7 @@ stateDiagram-v2
 - 네트워크나 일시적 서버 오류만 제한된 횟수로 backoff 재시도합니다.
 - 같은 drift가 반복되거나 검증 후에도 수렴하지 않으면 중단하고 사람에게 인계합니다.
 - 한 loop가 Day-0, Day-1, Day-2를 임의로 넘나들지 않습니다. 단계 전환은 별도 승인 이벤트입니다.
-- `restore`, `push-all`, `terraform apply` 같은 큰 blast radius 작업은 무인 기본 동작으로 두지 않습니다.
+- `apply`, `restore`, `push-all`, `terraform apply` 같은 원격 변경은 무인 기본 동작으로 두지 않습니다.
 
 ## 제안하는 정의 형식
 
@@ -52,7 +64,9 @@ kind: ReconciliationLoop
 metadata:
   name: dev-day2-drift
 spec:
-  environment: dev
+  enabled: false
+  repositoryMode: instance
+  instanceRef: automation-dev
   lifecycle: day2
   products: [automation, orchestrator]
   interval: 15m
@@ -60,10 +74,10 @@ spec:
   retry:
     maxAttempts: 3
   approval:
-    requiredFor: [push, push-all, restore, terraform-apply]
+    requiredFor: [native-apply, push, push-all, restore, terraform-apply]
 ```
 
-스키마와 실행기를 구현하기 전에는 이 예시를 실제 자동 실행 설정으로 간주하지 않습니다.
+스키마와 실행기를 구현하기 전에는 이 예시를 실제 자동 실행 설정으로 간주하지 않습니다. 인스턴스 저장소에서는 파일명의 `.example`을 제거하고 `instanceRef`를 맞춘 뒤 별도 검토를 거쳐 `enabled: true`로 변경합니다.
 
 ## 구현 순서
 

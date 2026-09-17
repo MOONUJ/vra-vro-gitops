@@ -9,7 +9,7 @@
 ## 템플릿에 포함하는 것
 
 - 디렉터리 구조와 lifecycle manifest
-- Terraform, sync, release와 bootstrap 도구
+- native 인프라 GitOps, 선택적 Terraform, sync, release와 bootstrap 도구
 - `instance.example.yaml`, `secrets.example.json`
 - AGENTS, Skill, Loop 계약
 - 공통 테스트와 문서
@@ -34,7 +34,9 @@ python3 tooling/template/bootstrap.py \
   --environment-tag seoul-prod
 ```
 
-생성된 `instance.yaml`은 비밀 없는 원하는 상태이므로 Git에 추가합니다. 생성된 `secrets.json`은 Git에서 제외되며 placeholder를 실제 값으로 교체합니다.
+생성된 `instance.yaml`은 비밀 없는 연결·관리 정책이므로 Git에 추가합니다. 생성된 `secrets.json`은 권한 `0600`으로 만들고 Git에서 제외하며 placeholder를 실제 값으로 교체합니다. Day-0 원하는 상태는 `infrastructure/`에 별도 manifest로 추가합니다.
+
+AGENTS, Skill과 Loop 예시도 템플릿에서 함께 복사됩니다. 이들은 `instance.yaml`의 Git 추적 여부로 템플릿 모드와 인스턴스 모드를 구분합니다. 생성 직후 `instance.yaml`이 아직 untracked인 동안은 Loop를 활성화하지 않으며, 최초 baseline을 검토·커밋한 뒤 실제 Loop 파일의 `.example`을 제거하고 `instanceRef`와 `enabled`를 명시합니다.
 
 ## 버전과 업데이트
 

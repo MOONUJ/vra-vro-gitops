@@ -1,6 +1,7 @@
 /secrets.json
 /instance.local.yaml
 /secrets.local.json
+/.gitops/
 vco_openapi.json
 *.pdf
 __pycache__/
