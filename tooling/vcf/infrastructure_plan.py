@@ -249,6 +249,7 @@ class InfrastructurePlanService:
         results_root: str | Path,
         instance: dict[str, Any],
         tool_version: str,
+        policy_hash: str = "",
         now: Callable[[], datetime] = _utc_now,
     ):
         self.infrastructure = infrastructure
@@ -256,6 +257,7 @@ class InfrastructurePlanService:
         self.results_root = Path(results_root)
         self.instance = instance
         self.tool_version = tool_version
+        self.policy_hash = policy_hash
         self.now = now
 
     def _manifest_snapshot(self) -> tuple[str, list[tuple[Path, dict[str, Any]]]]:
@@ -379,6 +381,7 @@ class InfrastructurePlanService:
                 "manifestHash": manifest_hash,
                 "observationHash": observation_hash,
                 "operations": operations,
+                "policyHash": self.policy_hash,
             }
         )
         current_time = self.now()
@@ -399,6 +402,7 @@ class InfrastructurePlanService:
             "observations": observations,
             "fingerprint": fingerprint,
             "operations": operations,
+            "policyHash": self.policy_hash,
         }
         body = {"apiVersion": PLAN_API_VERSION, "kind": PLAN_KIND, "metadata": metadata, "spec": spec}
         plan_hash = _hash(body)
@@ -445,6 +449,8 @@ class InfrastructurePlanService:
             raise InfrastructureError("plan이 만료되었습니다. 원격을 다시 관찰해 새 plan을 만드세요.")
         if spec.get("instance") != self.instance:
             raise InfrastructureError("plan 대상 인스턴스가 현재 설정과 일치하지 않습니다.")
+        if spec.get("policyHash", "") != self.policy_hash:
+            raise InfrastructureError("plan 생성 후 GitOps policy가 변경되었습니다.")
         manifest_hash, _ = self._manifest_snapshot()
         if manifest_hash != spec.get("manifestHash"):
             raise InfrastructureError("plan 생성 후 manifest가 변경되었습니다. 새 plan이 필요합니다.")

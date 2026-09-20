@@ -21,13 +21,23 @@
 ```bash
 python3 tooling/template/bootstrap.py \
   --name automation-dev \
-  --endpoint https://automation.example.com
+  --endpoint https://automation.example.com \
+  --package-name com.example.automation.dev
 .venv/bin/python tooling/vcf/configure.py validate \
   --instance instance.yaml \
   --secrets secrets.json
 ```
 
 검증은 원격 API를 호출하지 않습니다.
+실제 `instance.yaml`에서 템플릿 placeholder인 `com.example.vcf` package 이름과 경로는 거부됩니다. vRO package는 인스턴스에 맞는 고유 이름을 bootstrap 시 명시합니다.
+
+저장소 실행 준비 상태는 다음 명령으로 확인합니다.
+
+```bash
+.venv/bin/python tooling/vcf/cli.py context --json
+```
+
+`repositoryMode`, `baselineTracked`, `configValid`, `worktreeClean`, `mutationReady`를 각각 출력합니다. 원격 mutation은 인스턴스 모드, 유효한 설정과 커밋된 clean working tree를 모두 요구합니다. 무시되는 `secrets.json`과 `.gitops/` 결과는 clean working tree 판정에서 제외됩니다.
 
 인프라 manifest도 로컬에서 별도로 검증합니다.
 

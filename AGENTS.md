@@ -96,6 +96,8 @@ python3 tooling/vcf/configure.py validate \
   --instance instance.example.yaml \
   --secrets secrets.example.json
 python3 tooling/vcf/cli.py --infrastructure-root infrastructure validate
+python3 tooling/vcf/content_identity.py validate
+python3 tooling/vcf/schema_validation.py
 python3 tooling/vcf/cli.py context
 terraform -chdir=foundation/automation/terraform fmt -check
 ```

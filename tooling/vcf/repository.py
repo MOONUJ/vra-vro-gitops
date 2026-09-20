@@ -15,6 +15,39 @@ class RepositoryMode(str, Enum):
     AMBIGUOUS = "ambiguous"
 
 
+class OperationClass(str, Enum):
+    READ_ONLY = "read-only"
+    LOCAL_WRITE = "local-write"
+    REMOTE_MUTATION = "remote-mutation"
+
+
+OPERATION_REGISTRY = {
+    "context": OperationClass.READ_ONLY,
+    "validate": OperationClass.READ_ONLY,
+    "discover": OperationClass.READ_ONLY,
+    "status": OperationClass.READ_ONLY,
+    "observe-loop": OperationClass.LOCAL_WRITE,
+    "plan": OperationClass.READ_ONLY,
+    "adopt": OperationClass.LOCAL_WRITE,
+    "pull": OperationClass.LOCAL_WRITE,
+    "pull-all": OperationClass.LOCAL_WRITE,
+    "pull-preview": OperationClass.LOCAL_WRITE,
+    "accept-pull": OperationClass.LOCAL_WRITE,
+    "content-plan": OperationClass.READ_ONLY,
+    "content-apply": OperationClass.REMOTE_MUTATION,
+    "apply": OperationClass.REMOTE_MUTATION,
+    "push": OperationClass.REMOTE_MUTATION,
+    "push-all": OperationClass.REMOTE_MUTATION,
+    "export": OperationClass.READ_ONLY,
+    "backup": OperationClass.READ_ONLY,
+    "release-build": OperationClass.LOCAL_WRITE,
+    "verify": OperationClass.READ_ONLY,
+    "restore-plan": OperationClass.READ_ONLY,
+    "restore-apply": OperationClass.REMOTE_MUTATION,
+    "restore": OperationClass.REMOTE_MUTATION,
+}
+
+
 class RepositoryContextError(RuntimeError):
     """현재 저장소 모드에서 요청한 작업을 안전하게 실행할 수 없을 때 발생한다."""
 
@@ -104,4 +137,41 @@ def require_instance_mode(context: RepositoryContext, operation: str) -> None:
         raise RepositoryContextError(
             f"{operation}은 추적된 instance.yaml이 있는 인스턴스 저장소에서만 실행할 수 있습니다. "
             f"현재 모드: {context.mode.value}"
+        )
+
+
+def classify_operation(operation: str) -> OperationClass:
+    try:
+        return OPERATION_REGISTRY[operation]
+    except KeyError as exc:
+        raise RepositoryContextError(f"등록되지 않은 작업은 실행할 수 없습니다: {operation}") from exc
+
+
+def is_worktree_clean(context: RepositoryContext) -> bool:
+    """추적 파일 변경만 확인한다. 무시되는 secret과 .gitops 결과는 포함하지 않는다."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(context.root), "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+    except OSError as exc:
+        raise RepositoryContextError(f"Git 작업 트리 상태를 확인하지 못했습니다: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or f"git 종료 코드 {result.returncode}"
+        raise RepositoryContextError(f"Git 작업 트리 상태를 확인하지 못했습니다: {detail}")
+    return not result.stdout.strip()
+
+
+def require_operation_allowed(context: RepositoryContext, operation: str, require_clean: bool = True) -> None:
+    """operation registry에 따라 원격 mutation의 공통 저장소 경계를 강제한다."""
+    operation_class = classify_operation(operation)
+    if operation_class != OperationClass.REMOTE_MUTATION:
+        return
+    require_instance_mode(context, operation)
+    if require_clean and not is_worktree_clean(context):
+        raise RepositoryContextError(
+            f"{operation}은 추적 파일 변경이 없는 인스턴스 저장소에서만 실행할 수 있습니다. "
+            "원하는 상태를 검토하고 커밋한 뒤 다시 실행하세요."
         )

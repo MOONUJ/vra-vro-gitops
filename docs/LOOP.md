@@ -1,6 +1,6 @@
-# 향후 GitOps loop 설계
+# GitOps Loop 계약과 Observe-Only 실행기
 
-Loop는 단순 반복 실행이 아니라, 관찰한 상태를 원하는 상태에 안전하게 수렴시키는 제어 흐름입니다. 현재 저장소에는 loop 실행기가 없으며 이 문서는 구현 계약을 정의합니다.
+Loop는 단순 반복 실행이 아니라, 관찰한 상태를 원하는 상태에 안전하게 수렴시키는 제어 흐름입니다. 현재 구현 범위는 원격 변경이 없는 `observe → record`입니다. Plan 이후 단계는 승인 기반 Pilot 전까지 자동 연결하지 않습니다.
 
 ## 저장소 모드와 활성화
 
@@ -73,18 +73,25 @@ spec:
   mode: observe
   retry:
     maxAttempts: 3
+    maxElapsedSeconds: 120
+    backoffSeconds: 2
+  repeatDriftThreshold: 3
   approval:
     requiredFor: [native-apply, push, push-all, restore, terraform-apply]
 ```
 
-스키마와 실행기를 구현하기 전에는 이 예시를 실제 자동 실행 설정으로 간주하지 않습니다. 인스턴스 저장소에서는 파일명의 `.example`을 제거하고 `instanceRef`를 맞춘 뒤 별도 검토를 거쳐 `enabled: true`로 변경합니다.
+인스턴스 저장소에서는 파일명의 `.example`을 제거하고 `instanceRef`를 맞춘 뒤 별도 검토를 거쳐 `enabled: true`로 변경합니다. 예시 파일, 비활성 Loop, 추적되지 않은 `instance.yaml`, 잘못된 `instanceRef`는 원격 조회 전 차단됩니다.
+
+```bash
+vcf-gitops observe-loop --loop automation/loops/dev-day2-drift.yaml
+```
+
+실행기는 인스턴스별 lock을 획득하고 `.gitops/loop-runs/`에 관찰 hash, 시도 횟수, tool version과 민감정보가 제거된 결과를 기록합니다. 마지막 hash와 반복 횟수는 `.gitops/loop-state/`에 저장합니다. 네트워크 연결, timeout, HTTP 429와 5xx만 횟수·경과 시간 한도 안에서 재시도합니다. 인증·권한·스키마·정책 오류는 재시도하지 않습니다. 정상 상태가 반복되면 `notify: false`, drift나 실패 또는 상태 변화가 있으면 `notify: true`를 출력하므로 scheduler는 이 값을 알림 조건으로 사용합니다.
 
 ## 구현 순서
 
-1. `status` 결과를 안정적인 JSON으로 출력하는 read-only observe 인터페이스
-2. 환경·제품·리소스별 plan 스키마와 정책 검증
-3. 실행 기록과 lock 저장소
-4. 승인된 개발 환경 Day-2 변경에 한정한 apply/verify
-5. 충분한 운영 증거가 쌓인 뒤 Day-1 승격 연계 검토
+1. 완료: 안정적인 read-only observation, schema, lock, 제한 재시도와 journal
+2. 다음: 승인된 개발 환경 Day-2 변경 한 건에 한정한 apply/verify Pilot
+3. 이후: 충분한 운영 증거가 쌓인 뒤 Day-1 승격 연계 검토
 
 Day-0 자동 apply와 운영 환경 무인 mutation은 별도 위험 검토 대상으로 남깁니다.

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vcf-automation-gitops"
+version = "0.2.0"
+description = "Approval-gated GitOps tooling for VCF Automation and Orchestrator"
+requires-python = ">=3.10"
+dependencies = [
+  "requests>=2.31.0,<3.0.0",
+  "PyYAML>=6.0.0,<7.0.0"
+]
+
+[project.scripts]
+vcf-gitops = "vcf_gitops.unified_cli:main"
+
+[tool.setuptools]
+package-dir = {vcf_gitops = "tooling/vcf"}
+packages = ["vcf_gitops"]

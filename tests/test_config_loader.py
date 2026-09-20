@@ -1,4 +1,5 @@
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -28,6 +29,16 @@ class ConfigLoaderTest(unittest.TestCase):
     def test_missing_split_config_does_not_fallback(self):
         with self.assertRaises(ConfigError):
             load_source_config(REPOSITORY_ROOT / "missing-instance.yaml", REPOSITORY_ROOT / "missing-secrets.json")
+
+    def test_real_instance_rejects_example_package_placeholder(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            instance = root / "instance.yaml"
+            secrets = root / "secrets.json"
+            instance.write_bytes((REPOSITORY_ROOT / "instance.example.yaml").read_bytes())
+            secrets.write_bytes((REPOSITORY_ROOT / "secrets.example.json").read_bytes())
+            with self.assertRaisesRegex(ConfigError, "placeholder"):
+                load_source_config(instance, secrets)
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,6 +21,8 @@ flowchart LR
 
 Template Repository와 버전 정책은 [템플릿 운영 문서](docs/TEMPLATE.md), 브랜치와 실제 연동 검증은 [브랜치 전략](docs/BRANCHING.md)을 참고합니다.
 
+공통 도구는 version pin `.vcf-gitops-version`과 `pyproject.toml`로 package화됩니다. wheel 설치 후 사람, CI와 AI Agent는 `vcf-gitops context|infrastructure|content|release|schema|identity|template-update|observe-loop` entry point를 함께 사용합니다. 기존 Python script 경로는 0.x 호환 경로입니다.
+
 ## 관리 범위
 
 - Day-0 기반: Cloud Account, Cloud Zone, Network/Storage/Image Profile, Project
@@ -41,7 +43,8 @@ python3 -m venv .venv
 .venv/bin/python tooling/template/bootstrap.py \
   --name automation-seoul-dev \
   --endpoint https://automation.example.com \
-  --environment-tag seoul-dev
+  --environment-tag seoul-dev \
+  --package-name com.example.automation.seoul.dev
 ```
 
 명령은 `instance.example.yaml`을 바탕으로 추적 대상 `instance.yaml`을 만들고, Git에서 제외되는 `secrets.json`을 권한 `0600`으로 준비합니다. `instance.yaml`에는 연결·범위·관리 정책만 두고 Day-0 원하는 상태는 `infrastructure/`에 리소스별로 기록합니다.
@@ -123,6 +126,14 @@ git status --short
 
 ## 생성된 인스턴스 저장소 사용
 
+`context`는 저장소 모드뿐 아니라 baseline 추적, 설정, 작업 트리와 원격 변경 준비 상태를 확인합니다.
+
+```bash
+.venv/bin/python tooling/vcf/cli.py context --json
+```
+
+`apply`, `push`, `push-all`, 현재의 `backup`, `restore`는 공통 operation registry에서 원격 mutation으로 분류됩니다. 이 명령은 유효한 `instance.yaml`이 추적되고 원하는 상태가 커밋되어 추적 파일 변경이 없는 인스턴스 저장소에서만 실행됩니다. 템플릿과 모호한 모드에서는 API client를 사용하기 전에 거부됩니다.
+
 ### 기존 Automation 가져오기
 
 ```bash
@@ -175,20 +186,77 @@ Apply는 추적된 `instance.yaml`이 있는 인스턴스 저장소에서만 실
 
 ```bash
 .venv/bin/python tooling/vcf/vcf_sync.py status
-.venv/bin/python tooling/vcf/vcf_sync.py pull
-.venv/bin/python tooling/vcf/vcf_sync.py push --dry-run
-# 검토와 승인 후에만 실행
-.venv/bin/python tooling/vcf/vcf_sync.py push
+.venv/bin/python tooling/vcf/vcf_sync.py status --json
+.venv/bin/python tooling/vcf/vcf_sync.py pull-preview
+.venv/bin/python tooling/vcf/vcf_sync.py content-plan \
+  --lifecycle day2 \
+  --product automation \
+  --resource automation:ResourceAction:resize
 ```
+
+`status --json`은 Automation과 Orchestrator 결과를 하나의 결정론적 observation으로 출력합니다. 인증, 권한, API, 페이지네이션, 응답 또는 로컬 콘텐츠 해석이 하나라도 실패하면 빈 원격 상태로 계속하지 않고 `INCOMPLETE`와 non-zero exit code로 중단합니다.
+
+`pull-preview`는 원격 콘텐츠를 `.gitops/pull-previews/<preview-hash>/content/`에 완전히 렌더링하고 원격 상태와 다시 비교합니다. `content/`는 변경하지 않습니다. 파일별 변경과 hash를 검토한 후 정확한 preview만 수용합니다.
+
+vRO package는 이미 존재할 때만 GET export합니다. pull과 preview는 package를 생성하거나 membership을 갱신하지 않으며, package가 없으면 개별 콘텐츠만 preview하고 package export는 건너뜁니다.
+
+```bash
+.venv/bin/python tooling/vcf/vcf_sync.py accept-pull \
+  --preview .gitops/pull-previews/<preview-hash> \
+  --approve-preview <preview-hash>
+```
+
+Preview 생성 후 로컬 콘텐츠가 바뀌거나 preview가 변조되면 accept가 거부됩니다. 원격 부재만으로 로컬 파일을 삭제하지 않습니다. 기존 `pull`과 `pull-all`은 호환성을 위해 preview 생성 alias로 동작하며 더 이상 `content/`를 직접 변경하지 않습니다.
+
+콘텐츠 원격 변경은 `content-plan`이 출력한 작업, 대상 instance, Git commit, local content hash, 원격 observation hash와 만료를 검토한 후 실행합니다.
+
+```bash
+# CREATE가 있으면 해당 approvalKey를 --approve-create로 모두 추가합니다.
+.venv/bin/python tooling/vcf/vcf_sync.py content-apply \
+  --plan .gitops/content-plans/<plan-hash>.json \
+  --approve-plan <plan-hash>
+```
+
+`content-apply`는 plan 직후 Git이나 원격 상태가 변하면 거부되며, instance별 lock과 in-progress journal을 사용합니다. 각 작업은 원격 재조회에서 `IN_SYNC`가 확인되어야 `VERIFIED`가 됩니다. 기존 `push`와 `push-all`의 직접 mutation은 비활성화되었습니다.
 
 ### 릴리스와 복구
 
 ```bash
-.venv/bin/python tooling/vcf/vcf_release.py backup --version 1.0.0
-.venv/bin/python tooling/vcf/vcf_release.py restore --version 1.0.0
+# 원격을 변경하지 않는 export
+.venv/bin/python tooling/vcf/vcf_release.py export --version 1.0.0
+
+# Git의 local content에서 불변 release build
+.venv/bin/python tooling/vcf/vcf_release.py release-build --version 1.0.0
+
+# artifact SHA-256과 manifest 검증
+.venv/bin/python tooling/vcf/vcf_release.py verify --version 1.0.0
+
+# 원격과 artifact를 다시 검증해 불변 restore plan 생성
+.venv/bin/python tooling/vcf/vcf_release.py restore-plan --version 1.0.0
+
+# plan hash와 출력된 모든 artifact approval을 검토한 뒤 실행
+.venv/bin/python tooling/vcf/vcf_release.py restore-apply \
+  --version 1.0.0 \
+  --plan .gitops/restore-plans/<plan-hash>.json \
+  --approve-plan <plan-hash> \
+  --approve-artifact artifact:<path>:<sha256>
 ```
 
-`restore`, `push`, 향후 native `apply`, `terraform apply`는 원격 환경을 변경하므로 대상과 계획을 검토하고 승인 후 실행합니다.
+`export`는 서버의 vRO 객체 version이나 package membership을 변경하지 않습니다. 기존 `backup`은 read-only `export` alias입니다. `release-build`와 `export`는 기존 `releases/<version>`을 덮어쓰지 않으며 SemVer, source commit, target, tool version과 모든 artifact SHA-256을 manifest에 기록합니다.
+
+Direct `restore`는 비활성화되었습니다. `restore-plan`은 현재 지원되는 remote-export release만 대상으로 하며 release digest, 정확히 하나인 target project, 대상 instance, 현재 원격 observation과 만료를 결합합니다. `restore-apply`는 모든 artifact digest에 대한 exact approval을 요구하고, 적용 후 구성요소와 vRO package를 다시 확인합니다.
+
+`restore`, native `apply`, 콘텐츠 `content-apply`, `terraform apply`는 원격 환경을 변경하므로 대상과 plan을 검토하고 승인 후 실행합니다.
+
+### Observe-only Loop
+
+실제 인스턴스 저장소에서 Loop 예시를 복사해 `.example`을 제거하고 `instanceRef`와 `enabled: true`를 검토한 뒤 실행합니다.
+
+```bash
+vcf-gitops observe-loop --loop automation/loops/dev-day2-drift.yaml
+```
+
+현재 Loop는 원격 mutation을 하지 않습니다. instance 모드와 설정을 먼저 검증하고, instance별 lock 아래에서 observation을 생성해 `.gitops/loop-runs/`에 journal을 남깁니다. 동일 정상 상태는 조용히 유지하며 drift, 실패, 상태 변화와 반복 drift escalation만 알림 대상으로 표시합니다. 자세한 계약은 [Loop 문서](docs/LOOP.md)를 따릅니다.
 
 ## 주요 경로
 
@@ -199,7 +267,7 @@ foundation/             이전/선택적 Day-0 Terraform
 content/                Automation과 Orchestrator 콘텐츠
 lifecycle/              Day-0/1/2 분류 manifest
 tooling/vcf/            설정, API client, sync, release CLI
-tooling/template/       인스턴스 저장소 초기화 도구
+tooling/template/       인스턴스 저장소 초기화와 안전한 update wrapper
 releases/               버전 릴리스 아티팩트
 automation/loops/       향후 승인 기반 loop 정의
 .agents/skills/         Codex 작업 절차
@@ -218,6 +286,8 @@ automation/loops/       향후 승인 기반 loop 정의
 - [저장소 구조](STRUCTURE.md)
 - [인스턴스와 비밀값 설정](docs/CONFIGURATION.md)
 - [Day-0/1/2 정의](docs/LIFECYCLE.md)
+- [콘텐츠 Identity와 정규화](docs/CONTENT_IDENTITY.md)
+- [Schema, Policy와 CI](docs/SCHEMA_POLICY.md)
 - [브랜치 전략](docs/BRANCHING.md)
 - [Loop 설계](docs/LOOP.md)
 - [마이그레이션 상태](docs/MIGRATION.md)

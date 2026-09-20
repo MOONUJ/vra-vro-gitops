@@ -14,6 +14,7 @@
 - AGENTS, Skill, Loop 계약
 - 공통 테스트와 문서
 - `.template-version`
+- `.vcf-gitops-version`과 installable Python package metadata
 
 ## 템플릿에 포함하지 않는 것
 
@@ -31,7 +32,8 @@ GitHub에서 Template Repository로 설정하고 **Use this template**로 저장
 python3 tooling/template/bootstrap.py \
   --name automation-seoul-prod \
   --endpoint https://automation.example.com \
-  --environment-tag seoul-prod
+  --environment-tag seoul-prod \
+  --package-name com.example.automation.seoul.prod
 ```
 
 생성된 `instance.yaml`은 비밀 없는 연결·관리 정책이므로 Git에 추가합니다. 생성된 `secrets.json`은 권한 `0600`으로 만들고 Git에서 제외하며 placeholder를 실제 값으로 교체합니다. Day-0 원하는 상태는 `infrastructure/`에 별도 manifest로 추가합니다.
@@ -42,7 +44,18 @@ AGENTS, Skill과 Loop 예시도 템플릿에서 함께 복사됩니다. 이들�
 
 `.template-version`은 저장소를 생성하거나 마지막으로 공통 변경을 반영한 템플릿 버전을 나타냅니다. 템플릿 변경은 tag와 changelog로 배포하는 방식을 권장합니다.
 
-초기에는 템플릿 릴리스의 변경 내역을 보고 필요한 commit을 인스턴스 저장소 PR로 선택 적용합니다. 반복 비용이 커지면 공통 Python 패키지 또는 업데이트 도구로 분리합니다. 템플릿 업데이트가 인스턴스의 `instance.yaml`, `content/`, `lifecycle/`을 자동 덮어쓰면 안 됩니다.
+`.vcf-gitops-version`은 인스턴스가 검증한 CLI package 버전을 고정합니다. `pyproject.toml`에서 wheel을 빌드하면 `vcf-gitops` 단일 entry point를 사용할 수 있습니다. 0.x 전환 기간에는 기존 `tooling/vcf/cli.py`, `vcf_sync.py`, `vcf_release.py` 경로도 유지하지만 새 자동화는 통합 CLI를 사용합니다. 기존 script 경로는 1.0에서 제거 여부를 다시 결정합니다.
+
+새 template checkout을 `--source`로 지정한 뒤 먼저 preview합니다.
+
+```bash
+vcf-gitops template-update --source ../vcf-gitops-template --json
+vcf-gitops template-update \
+  --source ../vcf-gitops-template \
+  --apply --approve-version 0.2.0
+```
+
+업데이트는 `tooling/`, `schemas/`, package/version 파일만 생성·갱신하고 파일을 삭제하지 않습니다. `instance.yaml`, `secrets*`, `infrastructure/`, `content/`, `lifecycle/`, `governance/`, `releases/`와 `.gitops/`는 항상 보호합니다. 실제 적용도 인스턴스 저장소의 별도 PR에서 검토합니다.
 
 ## 실제 연동 검증
 

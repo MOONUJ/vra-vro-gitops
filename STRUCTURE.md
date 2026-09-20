@@ -14,6 +14,8 @@
 ```text
 vcf-automation-gitops-template/
 ├── .template-version                    # 템플릿 기준 버전
+├── .vcf-gitops-version                  # 검증한 공통 CLI package pin
+├── pyproject.toml                        # installable vcf-gitops package
 ├── instance.example.yaml                 # 인스턴스 정의 예시
 ├── instance.yaml                         # 생성된 저장소에서 추적, 템플릿에는 없음
 ├── secrets.example.json                  # 비밀값 형식 예시
@@ -43,9 +45,12 @@ vcf-automation-gitops-template/
 │   ├── configure.py
 │   ├── vra_client.py
 │   ├── vro_client.py
+│   ├── unified_cli.py                    # vcf-gitops 단일 entry point
+│   ├── template_update.py                # desired-state 보호 template update
+│   ├── observe_loop.py                   # observe-only loop와 journal
 │   ├── vcf_sync.py
 │   └── vcf_release.py
-├── tooling/template/bootstrap.py         # instance.yaml 초기화
+├── tooling/template/                     # instance 초기화와 update 호환 wrapper
 ├── releases/                             # 불변 릴리스 아티팩트
 ├── automation/loops/                     # 승인 기반 loop 정의
 ├── .gitops/                               # 로컬 discovery, plan과 apply 결과, Git 제외
@@ -76,6 +81,7 @@ vcf-automation-gitops-template/
 - `content/orchestrator/packages/`
 
 서버의 카테고리 경로를 보존하고 ID·timestamp 같은 휘발 필드는 비교 전에 정규화합니다.
+각 콘텐츠의 안정적인 원격 identity는 디렉터리의 `.gitops.yaml` 또는 단일 JSON 파일과 나란한 `{name}.gitops.yaml` sidecar에 기록합니다. Tag와 이름 검색은 discovery 범위로만 사용하고 mutation 대상은 검증된 sidecar의 `metadata.remoteId`와 scope에 결합합니다. 자세한 계약은 `docs/CONTENT_IDENTITY.md`를 따릅니다.
 
 ## 이전 경로 매핑
 

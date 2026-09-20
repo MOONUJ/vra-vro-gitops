@@ -1,0 +1,10 @@
+apiVersion: gitops.vcf.example/v1alpha1
+kind: GitOpsPolicy
+metadata:
+  name: default-safe-policy
+spec:
+  maxPlanOperations: 25
+  productionPattern: '(^|[-_])(prod|production)([-_]|$)'
+  allowProductionMutation: false
+  requireExplicitCreate: true
+  requireExplicitDelete: true

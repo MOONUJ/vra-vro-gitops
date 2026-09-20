@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gitops.vcf.example/automation-instance/v1alpha2",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {"enum": ["gitops.vcf.example/v1alpha2"]},
+    "kind": {"enum": ["AutomationInstance"]},
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {"name": {"type": "string", "minLength": 1}}
+    },
+    "spec": {
+      "type": "object",
+      "required": ["environmentTag", "endpoint", "gitops", "management", "orchestrator"],
+      "additionalProperties": false,
+      "properties": {
+        "environmentTag": {"type": "string", "minLength": 1},
+        "endpoint": {"type": "string", "pattern": "^https://"},
+        "organization": {"type": "string"},
+        "verifySsl": {"type": "boolean"},
+        "gitops": {
+          "type": "object",
+          "required": ["tag"],
+          "additionalProperties": false,
+          "properties": {
+            "tag": {"type": "string", "minLength": 1},
+            "projects": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "management": {
+          "type": "object",
+          "required": ["infrastructure", "deletionPolicy"],
+          "additionalProperties": false,
+          "properties": {
+            "infrastructure": {"enum": ["native", "terraform"]},
+            "deletionPolicy": {"enum": ["require-explicit-approval", "deny"]}
+          }
+        },
+        "orchestrator": {
+          "type": "object",
+          "required": ["package"],
+          "additionalProperties": false,
+          "properties": {
+            "package": {
+              "type": "object",
+              "required": ["name", "localPath"],
+              "additionalProperties": false,
+              "properties": {
+                "name": {"type": "string", "minLength": 1},
+                "localPath": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        },
+        "infrastructure": {"type": "object"}
+      }
+    }
+  }
+}

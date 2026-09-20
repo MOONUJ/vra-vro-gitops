@@ -9,11 +9,16 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT / "tooling" / "vcf"))
 
 from repository import (  # noqa: E402
+    OPERATION_REGISTRY,
+    OperationClass,
     RepositoryContext,
     RepositoryContextError,
     RepositoryMode,
+    classify_operation,
     detect_repository_context,
+    is_worktree_clean,
     require_instance_mode,
+    require_operation_allowed,
     validate_infrastructure_paths,
 )
 
@@ -90,6 +95,41 @@ class RepositoryContextTest(unittest.TestCase):
         context = RepositoryContext(root=Path("/tmp"), mode=RepositoryMode.TEMPLATE)
         with self.assertRaises(RepositoryContextError):
             require_instance_mode(context, "apply")
+
+    def test_remote_mutation_registry_covers_existing_commands(self):
+        self.assertEqual(classify_operation("status"), OperationClass.READ_ONLY)
+        self.assertEqual(classify_operation("pull"), OperationClass.LOCAL_WRITE)
+        for operation in ("apply", "push", "push-all", "content-apply", "restore", "restore-apply"):
+            self.assertEqual(OPERATION_REGISTRY[operation], OperationClass.REMOTE_MUTATION)
+        for operation in ("status", "export", "backup", "verify"):
+            self.assertEqual(OPERATION_REGISTRY[operation], OperationClass.READ_ONLY)
+        with self.assertRaisesRegex(RepositoryContextError, "등록되지 않은"):
+            classify_operation("unknown-mutation")
+
+    def test_operation_guard_blocks_template_mutation(self):
+        context = RepositoryContext(root=Path("/tmp"), mode=RepositoryMode.TEMPLATE)
+        with self.assertRaises(RepositoryContextError):
+            require_operation_allowed(context, "push", require_clean=False)
+        require_operation_allowed(context, "status")
+
+    def test_operation_guard_requires_clean_tracked_state(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self._git(root, "init")
+            self._git(root, "config", "user.email", "test@example.com")
+            self._git(root, "config", "user.name", "Test")
+            (root / "instance.yaml").write_text("kind: AutomationInstance\n", encoding="utf-8")
+            self._git(root, "add", "instance.yaml")
+            self._git(root, "commit", "-m", "baseline")
+            context = detect_repository_context(root)
+
+            self.assertTrue(is_worktree_clean(context))
+            require_operation_allowed(context, "apply")
+
+            (root / "instance.yaml").write_text("kind: Changed\n", encoding="utf-8")
+            self.assertFalse(is_worktree_clean(context))
+            with self.assertRaisesRegex(RepositoryContextError, "추적 파일 변경"):
+                require_operation_allowed(context, "apply")
 
 
 if __name__ == "__main__":

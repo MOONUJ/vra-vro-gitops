@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gitops.vcf.example/lifecycle-manifest/v1alpha1",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {"enum": ["gitops.vcf.example/v1alpha1"]},
+    "kind": {"enum": ["LifecycleManifest"]},
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {"name": {"type": "string", "minLength": 1}}
+    },
+    "spec": {
+      "type": "object",
+      "required": ["lifecycle", "purpose", "resources"],
+      "additionalProperties": false,
+      "properties": {
+        "lifecycle": {"enum": ["day0", "day1", "day2"]},
+        "purpose": {"type": "string", "minLength": 1},
+        "resources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["path", "product"],
+            "additionalProperties": false,
+            "properties": {
+              "path": {"type": "string", "minLength": 1},
+              "product": {"enum": ["automation", "orchestrator"]},
+              "usage": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  }
+}

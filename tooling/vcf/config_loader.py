@@ -2,11 +2,28 @@
 """인스턴스 정의와 비밀값을 읽어 VCF 도구별 입력으로 변환한다."""
 
 import json
+import os
 from pathlib import Path
 
 import yaml
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+def detect_repository_root() -> Path:
+    """source script와 설치된 package가 같은 저장소 경계를 사용하게 한다."""
+    explicit = os.environ.get("VCF_GITOPS_REPOSITORY_ROOT")
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+    current = Path.cwd().resolve()
+    if (current / ".git").exists() and (
+        (current / ".template-version").is_file() or (current / "instance.yaml").is_file()
+    ):
+        return current
+    source_root = Path(__file__).resolve().parents[2]
+    if (source_root / ".git").exists():
+        return source_root
+    return current
+
+
+REPOSITORY_ROOT = detect_repository_root()
 DEFAULT_INSTANCE_PATH = REPOSITORY_ROOT / "instance.yaml"
 DEFAULT_SECRETS_PATH = REPOSITORY_ROOT / "secrets.json"
 SUPPORTED_SCHEMA_VERSION = 2
@@ -106,7 +123,14 @@ def load_source_config(instance_path=None, secrets_path=None):
     instance_path = Path(instance_path or DEFAULT_INSTANCE_PATH)
     secrets_path = Path(secrets_path or DEFAULT_SECRETS_PATH)
     if instance_path.is_file() and secrets_path.is_file():
-        return merge_instance_and_secrets(_load_yaml(instance_path), _load_json(secrets_path))
+        instance = _load_yaml(instance_path)
+        if instance_path.name == "instance.yaml":
+            package = _required(instance, "spec.orchestrator.package")
+            if package.get("name") in {"com.example.vcf", "CHANGE_ME"}:
+                raise ConfigError("instance.yaml의 vRO package 이름이 placeholder입니다.")
+            if "com.example.vcf.package" in str(package.get("localPath", "")):
+                raise ConfigError("instance.yaml의 vRO package localPath가 placeholder입니다.")
+        return merge_instance_and_secrets(instance, _load_json(secrets_path))
     if instance_path.is_file():
         raise ConfigError(f"비밀값 파일이 없습니다: {secrets_path}. secrets.example.json을 secrets.json으로 복사하세요.")
     raise ConfigError(f"인스턴스 정의를 찾을 수 없습니다: {instance_path}")

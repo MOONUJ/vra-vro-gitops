@@ -12,5 +12,8 @@ spec:
   mode: observe
   retry:
     maxAttempts: 3
+    maxElapsedSeconds: 120
+    backoffSeconds: 2
+  repeatDriftThreshold: 3
   approval:
     requiredFor: [native-apply, push, push-all, restore, terraform-apply]

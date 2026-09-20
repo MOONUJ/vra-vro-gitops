@@ -9,7 +9,15 @@ from pathlib import Path
 from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
 from infrastructure import InfrastructureError, InfrastructureService, RESOURCE_DEFINITIONS
 from infrastructure_plan import InfrastructurePlanService
-from repository import RepositoryContextError, detect_repository_context, require_instance_mode, validate_infrastructure_paths
+from policy import PolicyError, evaluate_plan, load_policy, policy_hash
+from repository import (
+    RepositoryContextError,
+    RepositoryMode,
+    detect_repository_context,
+    is_worktree_clean,
+    require_operation_allowed,
+    validate_infrastructure_paths,
+)
 
 
 def _runtime_context(instance_path, secrets_path):
@@ -58,6 +66,7 @@ def build_parser():
     parser.add_argument("--infrastructure-root", default=str(REPOSITORY_ROOT / "infrastructure"))
     parser.add_argument("--plans-root", default=str(REPOSITORY_ROOT / ".gitops" / "plans"))
     parser.add_argument("--results-root", default=str(REPOSITORY_ROOT / ".gitops" / "apply-results"))
+    parser.add_argument("--policy", default=str(REPOSITORY_ROOT / "governance" / "policy.yaml"))
     subparsers = parser.add_subparsers(dest="action", required=True)
 
     context = subparsers.add_parser("context", help="현재 저장소 실행 모드 확인")
@@ -103,12 +112,34 @@ def main(argv=None):
     try:
         repository_context = detect_repository_context(REPOSITORY_ROOT)
         if args.action == "context":
-            result = {"repositoryRoot": str(repository_context.root), "mode": repository_context.mode.value}
+            worktree_clean = is_worktree_clean(repository_context)
+            config_valid = False
+            config_error = None
+            if repository_context.mode == RepositoryMode.INSTANCE:
+                try:
+                    normalize_runtime_config(load_source_config(args.instance, args.secrets))
+                    config_valid = True
+                except (ConfigError, OSError) as exc:
+                    config_error = str(exc)
+            result = {
+                "repositoryRoot": str(repository_context.root),
+                "repositoryMode": repository_context.mode.value,
+                "baselineTracked": repository_context.mode == RepositoryMode.INSTANCE,
+                "configValid": config_valid,
+                "worktreeClean": worktree_clean,
+                "mutationReady": repository_context.mode == RepositoryMode.INSTANCE and config_valid and worktree_clean,
+            }
+            if config_error:
+                result["configError"] = config_error
             if args.json:
                 print(json.dumps(result, ensure_ascii=False, indent=2))
             else:
-                print(f"저장소 모드: {result['mode']}")
+                print(f"저장소 모드: {result['repositoryMode']}")
                 print(f"저장소 루트: {result['repositoryRoot']}")
+                print(f"Baseline 추적: {result['baselineTracked']}")
+                print(f"설정 유효: {result['configValid']}")
+                print(f"작업 트리 정리됨: {result['worktreeClean']}")
+                print(f"원격 변경 준비됨: {result['mutationReady']}")
             return 0
 
         validate_infrastructure_paths(
@@ -129,6 +160,8 @@ def main(argv=None):
             print("인프라 manifest 검증 완료")
             return 0
 
+        active_policy = load_policy(args.policy)
+        active_policy_hash = policy_hash(active_policy)
         service.client, instance_identity, management = _runtime_context(args.instance, args.secrets)
         if args.action in {"plan", "apply"} and management.get("infrastructure") != "native":
             raise InfrastructureError("management.infrastructure가 native인 저장소에서만 plan/apply를 실행할 수 있습니다.")
@@ -146,6 +179,7 @@ def main(argv=None):
             args.results_root,
             instance_identity,
             _tool_version(),
+            active_policy_hash,
         )
         if args.action == "discover":
             result = service.discover(args.kind)
@@ -197,6 +231,7 @@ def main(argv=None):
             return 2 if any(item["state"] != "IN_SYNC" for item in result) else 0
         if args.action == "plan":
             path, artifact, reused = plan_service.create_plan(args.delete or [], args.expires_in)
+            evaluate_plan(artifact, active_policy, "plan")
             operations = artifact["spec"]["operations"]
             print("Infrastructure plan")
             print(f"  planHash    {artifact['metadata']['planHash']}")
@@ -209,8 +244,9 @@ def main(argv=None):
                 print("동일한 관찰 결과의 유효한 기존 plan을 재사용했습니다.")
             return 0
         if args.action == "apply":
-            require_instance_mode(repository_context, "apply")
+            require_operation_allowed(repository_context, "apply")
             artifact = plan_service.load_plan(args.plan)
+            evaluate_plan(artifact, active_policy, "apply")
             result_path, result = plan_service.apply(
                 artifact,
                 args.approve_plan,
@@ -221,7 +257,7 @@ def main(argv=None):
                 print(f"{item['status']:10} {item['action']:6} {item['kind']}/{item['name']}")
             print(f"apply 결과: {result_path.resolve()}")
             return 0 if result["spec"]["status"] == "VERIFIED" else 1
-    except (ConfigError, InfrastructureError, RepositoryContextError, OSError) as exc:
+    except (ConfigError, InfrastructureError, PolicyError, RepositoryContextError, OSError) as exc:
         print(f"오류: {exc}", file=sys.stderr)
         return 1
     return 1

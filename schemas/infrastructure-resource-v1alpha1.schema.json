@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gitops.vcf.example/infrastructure-resource/v1alpha1",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {"enum": ["gitops.vcf.example/v1alpha1"]},
+    "kind": {"enum": ["CloudAccount", "CloudZone", "NetworkProfile", "StorageProfile", "ImageProfile", "Project"]},
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "remoteId": {"type": "string", "minLength": 1}
+      }
+    },
+    "spec": {"type": "object", "required": ["name"]}
+  }
+}

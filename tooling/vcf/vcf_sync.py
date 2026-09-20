@@ -5,10 +5,34 @@ import json
 import argparse
 import logging
 import re
+import subprocess
 from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
+from content_identity import content_hash
+from content_observation import ContentObservationError, complete_observation, incomplete_observation
+from content_plan import ContentPlanError, ContentPlanService
+from content_pull import ContentPullError, ContentPullService
+from policy import PolicyError, evaluate_plan, load_policy, policy_hash
+from repository import RepositoryContextError, detect_repository_context, require_operation_allowed
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("vcf_gitops")
+
+
+def _tool_version():
+    path = REPOSITORY_ROOT / ".template-version"
+    return path.read_text(encoding="utf-8").strip() if path.is_file() else "development"
+
+
+def _git_commit():
+    result = subprocess.run(
+        ["git", "-C", str(REPOSITORY_ROOT), "rev-parse", "HEAD"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise ContentPlanError(result.stderr.strip() or "Git commit을 확인하지 못했습니다.")
+    return result.stdout.strip()
 
 def get_workflow_dirs(root_dir):
     """
@@ -208,42 +232,29 @@ def pull_all(client, config, root_dir, target_ids=None):
 
     logger.info(f"Discovered {len(discovered_resources)} resources matching tag '{tag}' on the server.")
 
-    all_workflows = list(discovered_workflows)
-    all_actions = list(discovered_actions)
-    all_configs = list(discovered_configs)
-    all_resources = list(discovered_resources)
-
     if target_ids is not None:
         discovered_workflows = [wf for wf in discovered_workflows if wf["id"] in target_ids.get("Workflow", set())]
         discovered_actions = [act for act in discovered_actions if act["id"] in target_ids.get("Action", set())]
         discovered_configs = [cfg for cfg in discovered_configs if cfg["id"] in target_ids.get("ConfigurationElement", set())]
         discovered_resources = [res for res in discovered_resources if res["id"] in target_ids.get("ResourceElement", set())]
 
-    # 5. Create or update the package on the server with all discovered elements, and export it
+    # 5. 기존 package가 있을 때만 GET export한다. Pull은 서버 package를 만들거나 갱신하지 않는다.
     pkg_config = config.get("package", {})
     pkg_name = pkg_config.get("name")
     pkg_local_path = pkg_config.get("local_path")
     if pkg_name and pkg_local_path:
         pkg_full_path = os.path.join(root_dir, pkg_local_path)
         try:
-            workflow_ids = [wf["id"] for wf in all_workflows]
-            action_ids = [act["id"] for act in all_actions]
-            config_ids = [cfg["id"] for cfg in all_configs]
-            resource_ids = [res["id"] for res in all_resources]
-
-            logger.info(f"Ensuring package '{pkg_name}' contains all elements on the server...")
-            client.create_or_update_package(
-                package_name=pkg_name,
-                workflow_ids=workflow_ids,
-                action_ids=action_ids,
-                config_ids=config_ids,
-                resource_ids=resource_ids
-            )
-
-            # Export the package binary
-            client.export_package(pkg_name, pkg_full_path)
+            package = client.get_package(pkg_name)
+            if package is None:
+                logger.warning(
+                    f"Package '{pkg_name}'가 원격에 없어 export를 건너뜁니다. "
+                    "pull은 원격 package를 생성하지 않습니다."
+                )
+            else:
+                client.export_package(pkg_name, pkg_full_path)
         except Exception as e:
-            logger.error(f"Failed to ensure/export package {pkg_name}: {e}")
+            logger.error(f"Failed to inspect/export package {pkg_name}: {e}")
             # Continue syncing individual components even if package export fails
 
     # 6. Pull individual workflows
@@ -726,35 +737,24 @@ def get_vro_status(client, config, root_dir):
     """
     tag = config.get("gitops_tag")
     if not tag:
-        logger.error("No 'gitops_tag' configured in config.json. Cannot execute status.")
-        sys.exit(1)
+        raise ContentObservationError("gitops_tag가 없어 vRO status를 실행할 수 없습니다.")
 
     logger.info(f"--- Running GitOps Status Check for tag '{tag}' ---")
 
     # 1. Discover server resources by tag
-    try:
-        server_workflows = client.find_resources_by_tag("Workflow", tag)
-    except Exception as e:
-        logger.error(f"Failed to fetch workflows from server: {e}")
-        server_workflows = []
+    def required_discovery(resource_type):
+        try:
+            value = client.find_resources_by_tag(resource_type, tag)
+        except Exception as exc:
+            raise ContentObservationError(f"vRO {resource_type} discovery 실패: {exc}") from exc
+        if not isinstance(value, list):
+            raise ContentObservationError(f"vRO {resource_type} discovery 응답이 목록이 아닙니다.")
+        return value
 
-    try:
-        server_actions = client.find_resources_by_tag("Action", tag)
-    except Exception as e:
-        logger.error(f"Failed to fetch actions from server: {e}")
-        server_actions = []
-
-    try:
-        server_configs = client.find_resources_by_tag("ConfigurationElement", tag)
-    except Exception as e:
-        logger.error(f"Failed to fetch configurations from server: {e}")
-        server_configs = []
-
-    try:
-        server_resources = client.find_resources_by_tag("ResourceElement", tag)
-    except Exception as e:
-        logger.error(f"Failed to fetch resources from server: {e}")
-        server_resources = []
+    server_workflows = required_discovery("Workflow")
+    server_actions = required_discovery("Action")
+    server_configs = required_discovery("ConfigurationElement")
+    server_resources = required_discovery("ResourceElement")
 
     # Map server assets by ID
     server_wf_map = {wf["id"]: wf for wf in server_workflows}
@@ -778,8 +778,8 @@ def get_vro_status(client, config, root_dir):
                     "meta": wf_meta,
                     "dir": wf_dir
                 }
-        except Exception:
-            pass
+        except (OSError, json.JSONDecodeError, TypeError) as exc:
+            raise ContentObservationError(f"로컬 vRO Workflow를 읽지 못했습니다: {wf_dir}: {exc}") from exc
 
     # Actions
     local_act_dirs = get_action_dirs(root_dir)
@@ -796,8 +796,8 @@ def get_vro_status(client, config, root_dir):
                     "meta": act_meta,
                     "dir": act_dir
                 }
-        except Exception:
-            pass
+        except (OSError, json.JSONDecodeError, TypeError) as exc:
+            raise ContentObservationError(f"로컬 vRO Action을 읽지 못했습니다: {act_dir}: {exc}") from exc
 
     # Configurations
     local_cfg_files = get_local_configurations(root_dir)
@@ -814,8 +814,8 @@ def get_vro_status(client, config, root_dir):
                     "json": cfg_json,
                     "file": cfg_file
                 }
-        except Exception:
-            pass
+        except (OSError, json.JSONDecodeError, TypeError) as exc:
+            raise ContentObservationError(f"로컬 vRO Configuration을 읽지 못했습니다: {cfg_file}: {exc}") from exc
 
     # Resources
     local_res_dirs = get_local_resources(root_dir)
@@ -832,8 +832,8 @@ def get_vro_status(client, config, root_dir):
                     "meta": res_meta,
                     "dir": res_dir
                 }
-        except Exception:
-            pass
+        except (OSError, json.JSONDecodeError, TypeError) as exc:
+            raise ContentObservationError(f"로컬 vRO Resource를 읽지 못했습니다: {res_dir}: {exc}") from exc
 
     # 3. Compare and categorize
     results = {
@@ -870,8 +870,8 @@ def get_vro_status(client, config, root_dir):
                         if srv_clean != loc_clean:
                             modified = True
                             break
-                except Exception:
-                    modified = True
+                except Exception as exc:
+                    raise ContentObservationError(f"vRO Workflow 비교 실패: {wf_id}: {exc}") from exc
 
             if modified:
                 results["Workflow"]["MODIFIED"].append((wf_id, local_wf_map[wf_id]["name"]))
@@ -898,8 +898,8 @@ def get_vro_status(client, config, root_dir):
                         loc_code = sf.read().replace("\r\n", "\n").strip()
                     if srv_code != loc_code:
                         modified = True
-                except Exception:
-                    modified = True
+                except Exception as exc:
+                    raise ContentObservationError(f"vRO Action 비교 실패: {act_id}: {exc}") from exc
 
             if modified:
                 results["Action"]["MODIFIED"].append((act_id, local_act_map[act_id]["name"]))
@@ -951,8 +951,8 @@ def get_vro_status(client, config, root_dir):
 
                     if srv_attrs != loc_attrs:
                         modified = True
-                except Exception:
-                    modified = True
+                except Exception as exc:
+                    raise ContentObservationError(f"vRO Configuration 비교 실패: {cfg_id}: {exc}") from exc
 
             if modified:
                 results["ConfigurationElement"]["MODIFIED"].append((cfg_id, local_cfg_map[cfg_id]["name"]))
@@ -983,8 +983,8 @@ def get_vro_status(client, config, root_dir):
 
                     if srv_content != loc_content:
                         modified = True
-                except Exception:
-                    modified = True
+                except Exception as exc:
+                    raise ContentObservationError(f"vRO Resource 비교 실패: {res_id}: {exc}") from exc
 
             if modified:
                 results["ResourceElement"]["MODIFIED"].append((res_id, local_res_map[res_id]["name"]))
@@ -993,12 +993,12 @@ def get_vro_status(client, config, root_dir):
 
     return results
 
-def status(client, config, root_dir):
+def status(client, config, root_dir, results=None):
     """
     Compares the state of workflows, actions, configurations, and resources
     between the local Git repository and the remote vRO orchestrator.
     """
-    results = get_vro_status(client, config, root_dir)
+    results = results if results is not None else get_vro_status(client, config, root_dir)
 
     # 4. Display results
     print("\n==================================================")
@@ -1215,8 +1215,8 @@ def pull_all_vra(client, config, root_dir, target_names=None):
                             if re.match(val, p_name):
                                 project_matched = True
                                 break
-                        except Exception:
-                            pass
+                        except re.error as exc:
+                            raise ContentObservationError(f"Catalog Policy 정규식이 유효하지 않습니다: {val}: {exc}") from exc
                     elif op == "equals":
                         if val == p_name:
                             project_matched = True
@@ -1640,8 +1640,7 @@ def get_vra_status(client, config, root_dir):
     """
     tag = config.get("gitops_tag")
     if not tag:
-        logger.error("No 'gitops_tag' configured in config.json. Cannot execute status-vra.")
-        sys.exit(1)
+        raise ContentObservationError("gitops_tag가 없어 Automation status를 실행할 수 없습니다.")
 
     target_projects = config.get("projects", [])
 
@@ -1650,11 +1649,16 @@ def get_vra_status(client, config, root_dir):
     # Cache projects
     try:
         projects = client.get_projects()
+        if not isinstance(projects, list):
+            raise TypeError("projects 응답이 목록이 아닙니다.")
         projects_by_id = {p["id"]: p for p in projects}
         projects_by_name = {p["name"]: p["id"] for p in projects}
-    except Exception:
-        projects_by_id = {}
-        projects_by_name = {}
+    except Exception as exc:
+        raise ContentObservationError(f"Automation Project discovery 실패: {exc}") from exc
+
+    missing_projects = sorted(set(target_projects) - set(projects_by_name))
+    if missing_projects:
+        raise ContentObservationError(f"설정한 Automation Project를 찾을 수 없습니다: {', '.join(missing_projects)}")
 
     target_project_ids = [projects_by_name[name] for name in target_projects if name in projects_by_name]
 
@@ -1733,7 +1737,16 @@ def get_vra_status(client, config, root_dir):
         else:
             server_css = server_css_all
 
-        server_pols = [pol for pol in client.list_policies() if is_policy_allowed(pol)]
+        policy_summaries = [pol for pol in client.list_policies() if is_policy_allowed(pol)]
+        server_pols = []
+        for policy_summary in policy_summaries:
+            policy_id = policy_summary.get("id")
+            if not policy_id:
+                raise ContentObservationError("Automation Catalog Policy 응답에 id가 없습니다.")
+            full_policy = client.get_policy(policy_id)
+            if not isinstance(full_policy, dict):
+                raise ContentObservationError(f"Automation Catalog Policy 상세 조회 실패: {policy_id}")
+            server_pols.append(full_policy)
         server_subs = [sub for sub in client.list_subscriptions() if not sub.get("system", False) and sub.get("type") == "RUNNABLE"]
 
         # Gather custom forms from catalog items
@@ -1751,12 +1764,16 @@ def get_vra_status(client, config, root_dir):
                     if form_data and form_data.get("status") == "ON":
                         form_data["_catalogItemName"] = item_name
                         server_forms.append(form_data)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    raise ContentObservationError(
+                        f"Automation Custom Form 조회 실패: {item_name or item_id}: {exc}"
+                    ) from exc
         except Exception as e:
-            logger.error(f"Error gathering custom forms from server: {e}")
+            raise ContentObservationError(f"Automation Custom Form discovery 실패: {e}") from e
+    except ContentObservationError:
+        raise
     except Exception as e:
-        logger.error(f"Error listing server assets: {e}")
+        raise ContentObservationError(f"Automation 콘텐츠 discovery 실패: {e}") from e
 
     # Gather local items
     local_blueprints = {}
@@ -1790,8 +1807,8 @@ def get_vra_status(client, config, root_dir):
                             "yaml": yaml_content,
                             "project": proj_name
                         }
-                except Exception:
-                    pass
+                except (OSError, json.JSONDecodeError, TypeError) as exc:
+                    raise ContentObservationError(f"로컬 Blueprint를 읽지 못했습니다: {bp_dir}: {exc}") from exc
 
     # Local ABX
     abx_root = os.path.join(auto_root, "abx")
@@ -1820,8 +1837,8 @@ def get_vra_status(client, config, root_dir):
                             "code": script_code,
                             "project": proj_name
                         }
-                except Exception:
-                    pass
+                except (OSError, json.JSONDecodeError, TypeError) as exc:
+                    raise ContentObservationError(f"로컬 ABX를 읽지 못했습니다: {abx_dir}: {exc}") from exc
 
     def load_local_flats(sub_folder):
         result = {}
@@ -1845,8 +1862,10 @@ def get_vra_status(client, config, root_dir):
                                 continue
 
                         result[name] = payload
-                    except Exception:
-                        pass
+                    except (OSError, json.JSONDecodeError, TypeError) as exc:
+                        raise ContentObservationError(
+                            f"로컬 Automation 콘텐츠를 읽지 못했습니다: {folder_path}/{file}: {exc}"
+                        ) from exc
         return result
 
     local_crs = load_local_flats("custom_resources")
@@ -1879,12 +1898,12 @@ def get_vra_status(client, config, root_dir):
                 full_bp = client.get_blueprint(server_bp_names[bp_name]["id"])
                 server_yaml = (full_bp.get("content") or "").replace("\r\n", "\n").strip() if full_bp else ""
                 local_yaml = local_blueprints[bp_name]["yaml"].replace("\r\n", "\n").strip()
-                if server_yaml != local_yaml:
+                if content_hash(server_yaml) != content_hash(local_yaml):
                     results["Blueprint"]["MODIFIED"].append((bp_name, "Content Mismatch"))
                 else:
                     results["Blueprint"]["IN_SYNC"].append((bp_name, "Matching"))
-            except Exception:
-                results["Blueprint"]["MODIFIED"].append((bp_name, "Error comparing"))
+            except Exception as exc:
+                raise ContentObservationError(f"Automation Blueprint 비교 실패: {bp_name}: {exc}") from exc
 
     # 2. ABX Actions comparison
     server_abx_names = {a["name"]: a for a in server_abx_actions}
@@ -1898,12 +1917,12 @@ def get_vra_status(client, config, root_dir):
                 full_srv = server_abx_names[abx_name]
                 server_code = (full_srv.get("source", "") or "").replace("\r\n", "\n").strip()
                 local_code = local_abx_actions[abx_name]["code"].replace("\r\n", "\n").strip()
-                if server_code != local_code:
+                if content_hash(server_code) != content_hash(local_code):
                     results["ABX Action"]["MODIFIED"].append((abx_name, "Script Mismatch"))
                 else:
                     results["ABX Action"]["IN_SYNC"].append((abx_name, "Matching"))
-            except Exception:
-                results["ABX Action"]["MODIFIED"].append((abx_name, "Error comparing"))
+            except Exception as exc:
+                raise ContentObservationError(f"Automation ABX 비교 실패: {abx_name}: {exc}") from exc
 
     # Flat comparisons helper
     def compare_flats(label, server_items, local_items):
@@ -1929,12 +1948,14 @@ def get_vra_status(client, config, root_dir):
             else:
                 srv_clean = dict(srv_map[name])
                 loc_clean = dict(local_items[name])
+                srv_clean.pop("id", None)
+                srv_clean.pop("projectId", None)
+                srv_clean.pop("_catalogItemName", None)
+                loc_clean.pop("id", None)
+                loc_clean.pop("projectId", None)
+                loc_clean.pop("_catalogItemName", None)
 
-                for key in ["id", "createdAt", "updatedAt", "links", "orgId", "projectId", "userId", "_catalogItemName"]:
-                    srv_clean.pop(key, None)
-                    loc_clean.pop(key, None)
-
-                if json.dumps(srv_clean, sort_keys=True) != json.dumps(loc_clean, sort_keys=True):
+                if content_hash(srv_clean) != content_hash(loc_clean):
                     results[label]["MODIFIED"].append((name, "Properties Mismatch"))
                 else:
                     results[label]["IN_SYNC"].append((name, "Matching"))
@@ -1948,12 +1969,12 @@ def get_vra_status(client, config, root_dir):
 
     return results
 
-def status_vra(client, config, root_dir):
+def status_vra(client, config, root_dir, results=None):
     """
     Compares the state of blueprints, ABX actions, Custom Resources, etc.,
     between the local Git repository and the remote vRA server.
     """
-    results = get_vra_status(client, config, root_dir)
+    results = results if results is not None else get_vra_status(client, config, root_dir)
 
     # Display results
     print("\n==================================================")
@@ -2131,22 +2152,76 @@ def push_vra(client, config, root_dir, dry_run=False):
     push_all_vra(client, config, root_dir, dry_run=dry_run, target_names=target_names)
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="VCF Automation & Orchestrator GitOps Sync Tool")
-    parser.add_argument("action", choices=["pull-all", "push-all", "status", "pull", "push"], help="Sync action to perform")
+    parser.add_argument(
+        "action",
+        choices=[
+            "pull-all",
+            "push-all",
+            "status",
+            "pull",
+            "push",
+            "pull-preview",
+            "accept-pull",
+            "content-plan",
+            "content-apply",
+        ],
+        help="Sync action to perform",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Validates files and configurations without calling server APIs")
     parser.add_argument("--bootstrap", action="store_true", help="Force imports the package file before applying code changes")
     parser.add_argument("--instance", default=str(REPOSITORY_ROOT / "instance.yaml"), help="Automation 인스턴스 정의 파일")
     parser.add_argument("--secrets", default=str(REPOSITORY_ROOT / "secrets.json"), help="로컬 비밀값 파일")
+    parser.add_argument("--json", action="store_true", help="status 결과를 안정적인 JSON 계약으로 출력")
+    parser.add_argument("--previews-root", default=str(REPOSITORY_ROOT / ".gitops" / "pull-previews"))
+    parser.add_argument("--preview", help="accept할 pull preview 디렉터리")
+    parser.add_argument("--approve-preview", help="명시적으로 승인할 pull preview hash")
+    parser.add_argument("--plans-root", default=str(REPOSITORY_ROOT / ".gitops" / "content-plans"))
+    parser.add_argument("--results-root", default=str(REPOSITORY_ROOT / ".gitops" / "content-apply-results"))
+    parser.add_argument("--locks-root", default=str(REPOSITORY_ROOT / ".gitops" / "locks"))
+    parser.add_argument("--plan", help="적용할 콘텐츠 plan artifact")
+    parser.add_argument("--approve-plan", help="명시적으로 승인할 콘텐츠 plan hash")
+    parser.add_argument("--approve-create", action="append", default=[], help="product:type:identity CREATE 승인")
+    parser.add_argument("--lifecycle", choices=["day1", "day2"])
+    parser.add_argument("--product", action="append", choices=["automation", "orchestrator"])
+    parser.add_argument("--resource", action="append", help="product:type:identity 콘텐츠 선택자")
+    parser.add_argument("--expires-in", type=int, default=1800)
+    parser.add_argument("--policy", default=str(REPOSITORY_ROOT / "governance" / "policy.yaml"))
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     root_dir = str(REPOSITORY_ROOT)
     try:
-        config = normalize_runtime_config(load_source_config(args.instance, args.secrets))
-    except ConfigError as exc:
+        repository_context = detect_repository_context(REPOSITORY_ROOT)
+        guarded_operation = "status" if args.dry_run and args.action in {"push", "push-all"} else args.action
+        require_operation_allowed(repository_context, guarded_operation)
+    except (RepositoryContextError, OSError) as exc:
+        logger.error(f"저장소 경계 오류: {exc}")
+        return 1
+
+    pull_service = ContentPullService(REPOSITORY_ROOT, args.previews_root, _tool_version())
+    if args.action == "accept-pull":
+        if not args.preview or not args.approve_preview:
+            logger.error("accept-pull에는 --preview와 --approve-preview가 필요합니다.")
+            return 1
+        try:
+            result_path, result = pull_service.accept(args.preview, args.approve_preview)
+        except (ContentPullError, OSError) as exc:
+            logger.error(f"pull accept 오류: {exc}")
+            return 1
+        print(f"ACCEPTED {len(result['spec']['applied'])} files")
+        print(f"result {result_path.resolve()}")
+        return 0
+
+    try:
+        source_config = load_source_config(args.instance, args.secrets)
+        config = normalize_runtime_config(source_config)
+        active_policy = load_policy(args.policy)
+        active_policy_hash = policy_hash(active_policy)
+    except (ConfigError, PolicyError, OSError) as exc:
         logger.error(f"설정 오류: {exc}")
-        sys.exit(1)
+        return 1
 
     if args.dry_run:
         logger.info("Dry-Run mode active.")
@@ -2195,22 +2270,169 @@ def main():
         verify_ssl=config.get("verify_ssl", False)
     )
 
+    target = {
+        "name": source_config["environment"]["name"],
+        "endpoint": config["vcf_url"],
+        "organization": config.get("org", "default"),
+        "gitopsTag": config["gitops_tag"],
+        "projects": sorted(config.get("projects", [])),
+    }
+
+    def observe_all():
+        vro_result = get_vro_status(vro_client, config, root_dir)
+        vra_result = get_vra_status(vra_client, config, root_dir)
+        return complete_observation(target, vro_result, vra_result), vro_result, vra_result
+
+    plan_service = ContentPlanService(
+        REPOSITORY_ROOT / "content",
+        args.plans_root,
+        args.results_root,
+        args.locks_root,
+        target,
+        _tool_version(),
+        _git_commit(),
+        active_policy_hash,
+    )
+
     # Execute action
-    if args.action == "pull-all":
-        pull_all(vro_client, config, root_dir)
-        pull_all_vra(vra_client, config, root_dir)
-    elif args.action == "pull":
-        pull(vro_client, config, root_dir)
-        pull_vra(vra_client, config, root_dir)
-    elif args.action == "push-all":
-        push_all(vro_client, config, root_dir, dry_run=False, force_bootstrap=args.bootstrap)
-        push_all_vra(vra_client, config, root_dir, dry_run=False)
-    elif args.action == "push":
-        push(vro_client, config, root_dir, dry_run=False)
-        push_vra(vra_client, config, root_dir, dry_run=False)
+    if args.action == "content-plan":
+        if not args.lifecycle:
+            logger.error("content-plan에는 --lifecycle day1|day2가 필요합니다.")
+            return 1
+        try:
+            observation, _, _ = observe_all()
+            plan_path, plan = plan_service.create_plan(
+                observation,
+                args.lifecycle,
+                args.product or ["automation", "orchestrator"],
+                args.resource or [],
+                args.expires_in,
+            )
+            evaluate_plan(plan, active_policy, "plan")
+        except (ContentObservationError, ContentPlanError, PolicyError, OSError) as exc:
+            logger.error(f"콘텐츠 plan 오류: {exc}")
+            return 1
+        print(f"Content plan {plan['metadata']['planHash']}")
+        print(f"expiresAt {plan['metadata']['expiresAt']}")
+        print(f"operations {len(plan['spec']['operations'])}")
+        for operation in plan["spec"]["operations"]:
+            print(f"{operation['action']:6} {operation['approvalKey']}")
+        print(f"artifact {plan_path.resolve()}")
+        return 0
+    if args.action == "content-apply":
+        if not args.plan or not args.approve_plan:
+            logger.error("content-apply에는 --plan과 --approve-plan이 필요합니다.")
+            return 1
+        try:
+            plan = plan_service.load_plan(args.plan)
+            evaluate_plan(plan, active_policy, "apply")
+            current_observation, _, _ = observe_all()
+
+            def execute_operation(operation):
+                if operation["product"] == "orchestrator":
+                    selected = {
+                        "Workflow": set(),
+                        "Action": set(),
+                        "ConfigurationElement": set(),
+                        "ResourceElement": set(),
+                    }
+                    selected[operation["type"]].add(operation["identity"])
+                    push_all(
+                        vro_client,
+                        config,
+                        root_dir,
+                        dry_run=False,
+                        force_bootstrap=operation["action"] == "CREATE",
+                        target_ids=selected,
+                    )
+                else:
+                    selected = {
+                        "Blueprint": set(),
+                        "ABX Action": set(),
+                        "Custom Resource": set(),
+                        "Resource Action": set(),
+                        "Catalog Source": set(),
+                        "Catalog Policy": set(),
+                        "Subscription": set(),
+                        "Custom Form": set(),
+                    }
+                    selected[operation["type"]].add(operation["identity"])
+                    push_all_vra(vra_client, config, root_dir, dry_run=False, target_names=selected)
+
+            def verify_operation(operation):
+                result = (
+                    get_vro_status(vro_client, config, root_dir)
+                    if operation["product"] == "orchestrator"
+                    else get_vra_status(vra_client, config, root_dir)
+                )
+                return any(
+                    item[0] == operation["identity"]
+                    for item in result[operation["type"]]["IN_SYNC"]
+                )
+
+            result_path, result = plan_service.apply(
+                plan,
+                args.approve_plan,
+                args.approve_create,
+                current_observation,
+                _git_commit(),
+                execute_operation,
+                verify_operation,
+            )
+        except (ContentObservationError, ContentPlanError, PolicyError, KeyError, OSError) as exc:
+            logger.error(f"콘텐츠 apply 오류: {exc}")
+            return 1
+        for operation in result["spec"]["operations"]:
+            print(f"{operation['status']:10} {operation['action']:6} {operation['approvalKey']}")
+        print(f"result {result_path.resolve()}")
+        return 0 if result["spec"]["status"] == "VERIFIED" else 1
+    if args.action in {"pull", "pull-all", "pull-preview"}:
+        if args.action in {"pull", "pull-all"}:
+            logger.warning(f"{args.action}은 direct write 대신 pull-preview로 실행됩니다.")
+
+        def render_preview(staging_root):
+            staging = str(staging_root)
+            pull_all(vro_client, config, staging)
+            pull_all_vra(vra_client, config, staging)
+            vro_check = get_vro_status(vro_client, config, staging)
+            vra_check = get_vra_status(vra_client, config, staging)
+            for product, result in (("orchestrator", vro_check), ("automation", vra_check)):
+                for resource_type, states in result.items():
+                    if states["MODIFIED"] or states["SERVER_ONLY"]:
+                        raise ContentPullError(
+                            f"{product}/{resource_type} pull 결과가 원격 상태로 수렴하지 않았습니다."
+                        )
+
+        try:
+            preview_path, preview = pull_service.create_preview(render_preview, target)
+        except (ContentPullError, ContentObservationError, OSError) as exc:
+            logger.error(f"pull preview 오류: {exc}")
+            return 1
+        print(f"Pull preview {preview['metadata']['previewHash']}")
+        print(f"changes {len(preview['spec']['changes'])}")
+        print(f"artifact {preview_path.resolve()}")
+        return 0
+    elif args.action in {"push", "push-all"}:
+        logger.error("direct push는 비활성화되었습니다. content-plan과 content-apply를 사용하세요.")
+        return 1
     elif args.action == "status":
-        status(vro_client, config, root_dir)
-        status_vra(vra_client, config, root_dir)
+        try:
+            observation, vro_results, vra_results = observe_all()
+        except Exception as exc:
+            observation = incomplete_observation(target, "content", exc)
+            if args.json:
+                print(json.dumps(observation, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                logger.error(f"콘텐츠 observation이 불완전합니다: {exc}")
+            return 1
+        if args.json:
+            print(json.dumps(observation, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            status(vro_client, config, root_dir, results=vro_results)
+            status_vra(vra_client, config, root_dir, results=vra_results)
+        products = observation["spec"]["products"].values()
+        return 2 if any(sum(value["summary"][state] for state in ("MODIFIED", "LOCAL_ONLY", "REMOTE_ONLY")) for value in products) else 0
+    return 0
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

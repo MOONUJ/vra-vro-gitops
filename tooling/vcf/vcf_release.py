@@ -9,12 +9,56 @@ import argparse
 import uuid
 import logging
 import re
+import subprocess
 from datetime import datetime
 from urllib.parse import quote
+import yaml
 from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
+from release_artifact import (
+    ReleaseArtifactError,
+    build_local_release,
+    finalize_release,
+    prepare_staging,
+    verify_release,
+)
+from policy import PolicyError, evaluate_plan, load_policy, policy_hash
+from restore_plan import RestorePlanError, RestorePlanService
+from repository import (
+    RepositoryContextError,
+    RepositoryMode,
+    detect_repository_context,
+    is_worktree_clean,
+    require_operation_allowed,
+)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("vcf_provision")
+
+
+def _tool_version():
+    path = REPOSITORY_ROOT / ".template-version"
+    return path.read_text(encoding="utf-8").strip() if path.is_file() else "development"
+
+
+def _git_commit():
+    result = subprocess.run(
+        ["git", "-C", str(REPOSITORY_ROOT), "rev-parse", "HEAD"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise ReleaseArtifactError(result.stderr.strip() or "Git commit을 확인하지 못했습니다.")
+    return result.stdout.strip()
+
+
+class _ExportProblemHandler(logging.Handler):
+    def __init__(self):
+        super().__init__(level=logging.WARNING)
+        self.messages = []
+
+    def emit(self, record):
+        self.messages.append(self.format(record))
 
 def zip_dir(dir_path, zip_file_path):
     """
@@ -37,7 +81,7 @@ def unzip_file(zip_file_path, dest_dir):
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
         zip_ref.extractall(dest_dir)
 
-def backup(vra_client, vro_client, config, version, output_dir):
+def export_legacy(vra_client, vro_client, config, version, output_dir):
     """
     Day-1 Backup: Fetches all logical catalogs/configurations from target server
     and generates a deployment artifact package (zip for vRA, .package for vRO).
@@ -317,68 +361,7 @@ def backup(vra_client, vro_client, config, version, output_dir):
         package_file_name = f"vro-package-{version}.package"
         package_dest_path = os.path.join(target_output_dir, package_file_name)
         try:
-            # Rebuild package with tagged components first
-            logger.info(f"Re-assembling package '{pkg_name}' elements on the server before export...")
-            discovered_workflows = vro_client.find_resources_by_tag("Workflow", tag)
-            discovered_actions = vro_client.find_resources_by_tag("Action", tag)
-            discovered_configs = vro_client.find_resources_by_tag("ConfigurationElement", tag)
-            discovered_resources = vro_client.find_resources_by_tag("ResourceElement", tag)
-
-            # Bump versions of discoverable items on the server to match target version
-            logger.info(f"Bumping version numbers of discovered items on server to '{version}'...")
-            for wf in discovered_workflows:
-                try:
-                    wf_meta = vro_client.get_workflow(wf["id"])
-                    if wf_meta:
-                        wf_meta["version"] = version
-                        vro_client.update_workflow(wf["id"], wf_meta)
-                        logger.info(f"  - Bumped workflow '{wf['name']}' to version {version}")
-                except Exception as e:
-                    logger.warning(f"Failed to bump version for workflow '{wf['name']}': {e}")
-
-            for act in discovered_actions:
-                try:
-                    act_meta = vro_client.get_action(act["id"])
-                    if act_meta:
-                        act_meta["version"] = version
-                        vro_client.update_action(act["id"], act_meta)
-                        logger.info(f"  - Bumped action '{act['name']}' to version {version}")
-                except Exception as e:
-                    logger.warning(f"Failed to bump version for action '{act['name']}': {e}")
-
-            for cfg in discovered_configs:
-                try:
-                    cfg_meta = vro_client.get_configuration(cfg["id"])
-                    if cfg_meta:
-                        cfg_meta["version"] = version
-                        vro_client.update_configuration(cfg["id"], cfg_meta)
-                        logger.info(f"  - Bumped configuration '{cfg['name']}' to version {version}")
-                except Exception as e:
-                    logger.warning(f"Failed to bump version for configuration '{cfg['name']}': {e}")
-
-            for res in discovered_resources:
-                try:
-                    res_meta = vro_client.get_resource(res["id"])
-                    if res_meta:
-                        res_meta["version"] = version
-                        vro_client.update_resource_metadata(res["id"], res_meta)
-                        logger.info(f"  - Bumped resource '{res['name']}' to version {version}")
-                except Exception as e:
-                    logger.warning(f"Failed to bump version for resource '{res['name']}': {e}")
-
-            workflow_ids = [w["id"] for w in discovered_workflows]
-            action_ids = [a["id"] for a in discovered_actions]
-            config_ids = [c["id"] for c in discovered_configs]
-            resource_ids = [r["id"] for r in discovered_resources]
-
-            vro_client.create_or_update_package(
-                package_name=pkg_name,
-                workflow_ids=workflow_ids,
-                action_ids=action_ids,
-                config_ids=config_ids,
-                resource_ids=resource_ids
-            )
-            # Export the package binary
+            # 기존 package를 읽기 전용으로 export한다. Version과 membership은 변경하지 않는다.
             vro_client.export_package(pkg_name, package_dest_path)
             manifest_components["vro_package"] = package_file_name
         except Exception as e:
@@ -398,12 +381,43 @@ def backup(vra_client, vro_client, config, version, output_dir):
 
     logger.info(f"=== Day-1 Backup completed for version: {version}. Artifacts saved at {target_output_dir} ===")
 
-def restore(vra_client, vro_client, config, version, input_dir):
+
+def export_release(vra_client, vro_client, config, version, output_dir, target, tool_version, git_commit):
+    """원격 mutation 없이 export한 결과를 불변 release와 provenance로 마감한다."""
+    staging_root, staged_release, destination = prepare_staging(output_dir, version)
+    problem_handler = _ExportProblemHandler()
+    logger.addHandler(problem_handler)
+    try:
+        # export_legacy는 output_dir/version을 생성하므로 미리 만든 빈 디렉터리를 제거한다.
+        staged_release.rmdir()
+        export_legacy(vra_client, vro_client, config, version, str(staging_root))
+        if problem_handler.messages:
+            raise ReleaseArtifactError("원격 export가 완전하지 않습니다:\n" + "\n".join(problem_handler.messages))
+        return finalize_release(
+            staging_root,
+            staged_release,
+            destination,
+            version,
+            "remote-export",
+            target,
+            tool_version,
+            git_commit,
+            {"gitopsTag": config.get("gitops_tag"), "projects": sorted(config.get("projects", []))},
+        )
+    except Exception:
+        if staging_root.exists():
+            shutil.rmtree(staging_root)
+        raise
+    finally:
+        logger.removeHandler(problem_handler)
+
+def restore_legacy(vra_client, vro_client, config, version, input_dir):
     """
     Day-1 Restore: Loads the deployment artifacts (zip & .package) for a specific version
     and applies them to the target server, creating skeletons or initializing configurations.
     """
     logger.info(f"=== Starting Day-1 Restore for version: {version} ===")
+    configured_project_name, configured_project_id = validate_restore_projects(vra_client, config)
 
     artifact_path = os.path.abspath(os.path.join(input_dir, version))
     manifest_file = os.path.join(artifact_path, "manifest.json")
@@ -414,7 +428,7 @@ def restore(vra_client, vro_client, config, version, input_dir):
     with open(manifest_file, "r", encoding="utf-8") as f:
         manifest = json.load(f)
 
-    components = manifest.get("components", {})
+    components = manifest.get("components") or manifest.get("spec", {}).get("exportComponents", {})
     vro_package_name = components.get("vro_package")
     vra_artifacts_zip = components.get("vra_artifacts_zip")
 
@@ -443,35 +457,18 @@ def restore(vra_client, vro_client, config, version, input_dir):
         try:
             unzip_file(zip_file_path, vra_temp_dir)
 
-            # Fetch target projects map for ID resolution
-            try:
-                projects = vra_client.get_projects()
-                projects_by_name = {p["name"]: p["id"] for p in projects}
-            except Exception as e:
-                logger.error(f"Failed to fetch projects cache: {e}")
-                projects_by_name = {}
-
-            target_projects_config = config.get("projects", [])
-            target_project_id = None
-            if target_projects_config and target_projects_config[0] in projects_by_name:
-                target_project_id = projects_by_name[target_projects_config[0]]
-            else:
-                target_project_id = list(projects_by_name.values())[0] if projects_by_name else "default-project-id"
+            # Plan 단계에서 검증한 단일 project에만 복구한다.
+            projects_by_name = {configured_project_name: configured_project_id}
+            target_projects_config = [configured_project_name]
+            target_project_id = configured_project_id
 
             def resolve_project_id(proj_name):
                 if proj_name in projects_by_name:
                     return projects_by_name[proj_name]
-                if target_projects_config and target_projects_config[0] in projects_by_name:
-                    return projects_by_name[target_projects_config[0]]
                 return target_project_id
 
-            # Fetch target project name for name normalization to prevent catalog source duplicates
-            try:
-                proj_resp = vra_client.request("GET", f"/iaas/api/projects/{target_project_id}")
-                target_project_name = proj_resp.json().get("name", "admin") if proj_resp.status_code < 400 else "admin"
-            except Exception as e:
-                logger.warning(f"Failed to fetch target project name: {e}")
-                target_project_name = "admin"
+            # 검증된 설정 값을 사용하며 임의 project나 placeholder로 fallback하지 않는다.
+            target_project_name = configured_project_name
 
             # Build old_id_to_name map for catalog sources to map policies correctly
             old_id_to_name = {}
@@ -1110,25 +1107,139 @@ def restore(vra_client, vro_client, config, version, input_dir):
 
     logger.info(f"=== Day-1 Restore completed for version: {version} ===")
 
-def main():
+
+def validate_restore_projects(vra_client, config):
+    configured = config.get("projects", [])
+    if len(configured) != 1:
+        raise RestorePlanError("restore 대상 project를 정확히 하나 설정해야 합니다.")
+    projects = vra_client.get_projects()
+    if not isinstance(projects, list):
+        raise RestorePlanError("Automation Project discovery 응답이 목록이 아닙니다.")
+    projects_by_name = {project.get("name"): project.get("id") for project in projects}
+    if configured[0] not in projects_by_name or not projects_by_name[configured[0]]:
+        raise RestorePlanError(f"restore 대상 project를 찾을 수 없습니다: {configured[0]}")
+    return configured[0], projects_by_name[configured[0]]
+
+
+def verify_restored_release(vra_client, vro_client, config, release):
+    components = release.get("spec", {}).get("exportComponents")
+    if not isinstance(components, dict):
+        raise RestorePlanError("현재 restore는 remote-export release만 지원합니다.")
+
+    def names(items):
+        return {item.get("name") or item.get("displayName") for item in items if isinstance(item, dict)}
+
+    checks = {
+        "blueprints": names(vra_client.list_blueprints()),
+        "abx_actions": names(vra_client.list_abx_actions()),
+        "custom_resources": names(vra_client.list_custom_resources()),
+        "resource_actions": names(vra_client.list_resource_actions()),
+        "catalog_sources": names(vra_client.list_catalog_sources()),
+        "policies": names(vra_client.list_policies()),
+        "subscriptions": names(vra_client.list_subscriptions()),
+        "naming_policies": names(vra_client.list_naming_policies()),
+    }
+    for component, remote_names in checks.items():
+        expected = set(components.get(component, []))
+        missing = sorted(expected - remote_names)
+        if missing:
+            raise RestorePlanError(f"restore 후 {component}가 없습니다: {', '.join(missing)}")
+
+    package_file = components.get("vro_package")
+    if package_file:
+        package_name = config.get("package", {}).get("name")
+        if not package_name:
+            raise RestorePlanError("검증할 vRO package name이 설정되지 않았습니다.")
+        temporary = tempfile.mkdtemp()
+        try:
+            exported = os.path.join(temporary, package_file)
+            vro_client.export_package(package_name, exported)
+            if not os.path.isfile(exported) or os.path.getsize(exported) == 0:
+                raise RestorePlanError("restore 후 vRO package를 검증하지 못했습니다.")
+        finally:
+            shutil.rmtree(temporary)
+    return True
+
+def main(argv=None):
     parser = argparse.ArgumentParser(description="VCF Automation & Orchestrator Day-1 Provisioning Tool")
-    parser.add_argument("action", choices=["backup", "restore"], help="Lifecycle action to perform")
-    parser.add_argument("--version", required=True, help="Release version to backup/restore")
+    parser.add_argument(
+        "action",
+        choices=["export", "backup", "release-build", "verify", "restore", "restore-plan", "restore-apply"],
+        help="Lifecycle action to perform",
+    )
+    parser.add_argument("--version", required=True, help="SemVer release version")
     parser.add_argument("--artifacts-dir", default=None, help="Directory to read/write release artifacts")
     parser.add_argument("--instance", default=str(REPOSITORY_ROOT / "instance.yaml"), help="Automation 인스턴스 정의 파일")
     parser.add_argument("--secrets", default=str(REPOSITORY_ROOT / "secrets.json"), help="로컬 비밀값 파일")
+    parser.add_argument("--plans-root", default=str(REPOSITORY_ROOT / ".gitops" / "restore-plans"))
+    parser.add_argument("--results-root", default=str(REPOSITORY_ROOT / ".gitops" / "restore-results"))
+    parser.add_argument("--locks-root", default=str(REPOSITORY_ROOT / ".gitops" / "locks"))
+    parser.add_argument("--plan", help="적용할 restore plan artifact")
+    parser.add_argument("--approve-plan", help="명시적으로 승인할 restore plan hash")
+    parser.add_argument("--approve-artifact", action="append", default=[], help="artifact:path:sha256 승인")
+    parser.add_argument("--expires-in", type=int, default=1800)
+    parser.add_argument("--policy", default=str(REPOSITORY_ROOT / "governance" / "policy.yaml"))
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
-        config = normalize_runtime_config(load_source_config(args.instance, args.secrets))
-    except ConfigError as exc:
+        repository_context = detect_repository_context(REPOSITORY_ROOT)
+        require_operation_allowed(repository_context, args.action)
+        active_policy = load_policy(args.policy)
+        active_policy_hash = policy_hash(active_policy)
+    except (PolicyError, RepositoryContextError, OSError) as exc:
         logger.error(f"설정 오류: {exc}")
-        sys.exit(1)
+        return 1
 
-    # 기본 릴리스 디렉터리는 저장소 루트의 releases이다.
     if not args.artifacts_dir:
-        args.artifacts_dir = str(REPOSITORY_ROOT / "releases")
+        args.artifacts_dir = str(
+            REPOSITORY_ROOT / ("releases" if repository_context.mode == RepositoryMode.INSTANCE else ".gitops/release-exports")
+        )
+
+    if args.action == "verify":
+        try:
+            manifest = verify_release(Path(args.artifacts_dir) / args.version)
+        except ReleaseArtifactError as exc:
+            logger.error(f"release 검증 오류: {exc}")
+            return 1
+        print(f"VERIFIED {manifest['metadata']['version']}")
+        return 0
+
+    if args.action == "release-build":
+        if not is_worktree_clean(repository_context):
+            logger.error("release-build는 추적 파일 변경이 없는 commit에서만 실행할 수 있습니다.")
+            return 1
+        instance_path = Path(args.instance)
+        if not instance_path.is_file() and repository_context.mode == RepositoryMode.TEMPLATE:
+            instance_path = REPOSITORY_ROOT / "instance.example.yaml"
+        try:
+            instance = yaml.safe_load(instance_path.read_text(encoding="utf-8"))
+            target = {
+                "name": instance["metadata"]["name"],
+                "endpoint": instance["spec"]["endpoint"],
+                "organization": instance["spec"].get("organization", "default"),
+            }
+            release_path, _ = build_local_release(
+                REPOSITORY_ROOT,
+                args.artifacts_dir,
+                args.version,
+                target,
+                _tool_version(),
+                active_policy_hash,
+                _git_commit(),
+            )
+        except (KeyError, TypeError, yaml.YAMLError, OSError, ReleaseArtifactError) as exc:
+            logger.error(f"release build 오류: {exc}")
+            return 1
+        print(f"release {release_path.resolve()}")
+        return 0
+
+    try:
+        source_config = load_source_config(args.instance, args.secrets)
+        config = normalize_runtime_config(source_config)
+    except (ConfigError, OSError) as exc:
+        logger.error(f"설정 오류: {exc}")
+        return 1
 
     os.makedirs(args.artifacts_dir, exist_ok=True)
 
@@ -1149,10 +1260,100 @@ def main():
         verify_ssl=config.get("verify_ssl", False)
     )
 
-    if args.action == "backup":
-        backup(vra_client, vro_client, config, args.version, args.artifacts_dir)
+    target = {
+        "name": source_config["environment"]["name"],
+        "endpoint": config["vcf_url"],
+        "organization": config.get("org", "default"),
+    }
+    if args.action in {"restore-plan", "restore-apply"}:
+        from content_observation import complete_observation
+        from vcf_sync import get_vra_status, get_vro_status
+
+        try:
+            validate_restore_projects(vra_client, config)
+            observation = complete_observation(
+                target,
+                get_vro_status(vro_client, config, str(REPOSITORY_ROOT)),
+                get_vra_status(vra_client, config, str(REPOSITORY_ROOT)),
+            )
+            service = RestorePlanService(
+                args.plans_root,
+                args.results_root,
+                args.locks_root,
+                target,
+                _tool_version(),
+            )
+            if args.action == "restore-plan":
+                release_path = Path(args.artifacts_dir) / args.version
+                release = verify_release(release_path)
+                if not isinstance(release.get("spec", {}).get("exportComponents"), dict):
+                    raise RestorePlanError("현재 restore는 remote-export release만 지원합니다.")
+                plan_path, plan = service.create_plan(release_path, observation, args.expires_in)
+                evaluate_plan(plan, active_policy, "plan")
+                print(f"Restore plan {plan['metadata']['planHash']}")
+                print(f"expiresAt {plan['metadata']['expiresAt']}")
+                for approval in plan["spec"]["requiredApprovals"]:
+                    print(f"approve {approval}")
+                print(f"artifact {plan_path.resolve()}")
+                return 0
+            if not args.plan or not args.approve_plan:
+                raise RestorePlanError("restore-apply에는 --plan과 --approve-plan이 필요합니다.")
+            plan = service.load_plan(args.plan)
+            evaluate_plan(plan, active_policy, "apply")
+
+            def execute_restore(release_path):
+                problem_handler = _ExportProblemHandler()
+                logger.addHandler(problem_handler)
+                try:
+                    restore_legacy(
+                        vra_client,
+                        vro_client,
+                        config,
+                        release_path.name,
+                        str(release_path.parent),
+                    )
+                    if problem_handler.messages:
+                        raise RestorePlanError("restore가 완전하지 않습니다:\n" + "\n".join(problem_handler.messages))
+                finally:
+                    logger.removeHandler(problem_handler)
+
+            result_path, result = service.apply(
+                plan,
+                args.approve_plan,
+                args.approve_artifact,
+                observation,
+                execute_restore,
+                lambda release: verify_restored_release(vra_client, vro_client, config, release),
+            )
+            print(f"{result['spec']['status']} RESTORE_RELEASE")
+            print(f"result {result_path.resolve()}")
+            return 0 if result["spec"]["status"] == "VERIFIED" else 1
+        except (RestorePlanError, ReleaseArtifactError, PolicyError, ConfigError, OSError) as exc:
+            logger.error(f"restore 오류: {exc}")
+            return 1
+
+    if args.action in {"export", "backup"}:
+        if args.action == "backup":
+            logger.warning("backup은 read-only export alias입니다. export를 사용하세요.")
+        try:
+            release_path, _ = export_release(
+                vra_client,
+                vro_client,
+                config,
+                args.version,
+                args.artifacts_dir,
+                target,
+                _tool_version(),
+                _git_commit(),
+            )
+        except (ReleaseArtifactError, OSError) as exc:
+            logger.error(f"release export 오류: {exc}")
+            return 1
+        print(f"release {release_path.resolve()}")
     elif args.action == "restore":
-        restore(vra_client, vro_client, config, args.version, args.artifacts_dir)
+        logger.error("direct restore는 비활성화되었습니다. restore-plan과 restore-apply를 사용하세요.")
+        return 1
+    return 0
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

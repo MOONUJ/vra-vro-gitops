@@ -6,9 +6,8 @@ import json
 import sys
 from pathlib import Path
 
-from config_loader import ConfigError, build_terraform_variables, load_source_config, normalize_runtime_config
+from config_loader import ConfigError, REPOSITORY_ROOT, build_terraform_variables, load_source_config, normalize_runtime_config
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_TERRAFORM_OUTPUT = REPOSITORY_ROOT / "foundation" / "automation" / "terraform" / "generated.auto.tfvars.json"
 
 
