@@ -2,6 +2,7 @@ import sys
 import types
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -11,6 +12,7 @@ try:
 except ModuleNotFoundError:
     sys.modules["requests"] = types.SimpleNamespace()
 
+import vro_client  # noqa: E402
 from vro_client import from_runtime_config  # noqa: E402
 
 
@@ -29,6 +31,31 @@ class VroClientConfigurationTest(unittest.TestCase):
 
         self.assertEqual("https://vro.example.com/vco", client.vco_url)
         self.assertEqual("automation-token", client.refresh_token)
+
+    def test_automation_oauth_and_external_vro_use_independent_tls_policies(self):
+        client = from_runtime_config(
+            {
+                "vcf_url": "https://automation.example.com",
+                "refresh_token": "automation-token",
+                "org": "example",
+                "verify_ssl": False,
+                "vro_url": "https://vro.example.com",
+                "vro_verify_ssl": True,
+            }
+        )
+        auth_response = types.SimpleNamespace(
+            status_code=200,
+            json=lambda: {"access_token": "access-token"},
+        )
+        vro_response = types.SimpleNamespace(status_code=200)
+
+        with patch.object(vro_client.requests, "post", return_value=auth_response, create=True) as post:
+            client.authenticate()
+        with patch.object(vro_client.requests, "request", return_value=vro_response, create=True) as request:
+            client.request("GET", "/server/authentication")
+
+        self.assertFalse(post.call_args.kwargs["verify"])
+        self.assertTrue(request.call_args.kwargs["verify"])
 
     def test_package_membership_is_normalized_for_discovery(self):
         client = from_runtime_config(
