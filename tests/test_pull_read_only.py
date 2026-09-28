@@ -14,8 +14,13 @@ class FakeVroClient:
         self.package = package
         self.exported = []
         self.mutations = []
+        self.package_discovery = []
 
     def find_resources_by_tag(self, resource_type, tag):
+        return []
+
+    def find_resources_by_package(self, resource_type, package_name):
+        self.package_discovery.append((resource_type, package_name))
         return []
 
     def get_package(self, name):
@@ -51,6 +56,28 @@ class PullReadOnlyTest(unittest.TestCase):
             )
             self.assertEqual([], client.mutations)
             self.assertEqual(1, len(client.exported))
+
+    def test_package_discovery_is_used_for_every_resource_type(self):
+        with tempfile.TemporaryDirectory() as directory:
+            client = FakeVroClient(package={"name": "example"})
+            pull_all(
+                client,
+                {
+                    "gitops_tag": "dev",
+                    "vro_discovery_mode": "package",
+                    "package": {"name": "example", "local_path": "content/example.package"},
+                },
+                directory,
+            )
+            self.assertEqual(
+                [
+                    ("Workflow", "example"),
+                    ("Action", "example"),
+                    ("ConfigurationElement", "example"),
+                    ("ResourceElement", "example"),
+                ],
+                client.package_discovery,
+            )
 
 
 if __name__ == "__main__":
