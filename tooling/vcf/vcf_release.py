@@ -1243,16 +1243,11 @@ def main(argv=None):
 
     os.makedirs(args.artifacts_dir, exist_ok=True)
 
-    from vro_client import VroClient
+    from vro_client import from_runtime_config
     from vra_client import VraClient
 
     # Initialize Clients
-    vro_client = VroClient(
-        vcf_url=config["vcf_url"],
-        refresh_token=config["refresh_token"],
-        org=config.get("org", "default"),
-        verify_ssl=config.get("verify_ssl", False)
-    )
+    vro_client = from_runtime_config(config)
     vra_client = VraClient(
         vcf_url=config["vcf_url"],
         refresh_token=config["refresh_token"],
@@ -1263,6 +1258,7 @@ def main(argv=None):
     target = {
         "name": source_config["environment"]["name"],
         "endpoint": config["vcf_url"],
+        "orchestratorEndpoint": config["vro_url"],
         "organization": config.get("org", "default"),
     }
     if args.action in {"restore-plan", "restore-apply"}:

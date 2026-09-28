@@ -81,8 +81,21 @@ def merge_instance_and_secrets(instance, secrets):
     metadata = _required(instance, "metadata")
     spec = _required(instance, "spec")
     gitops = _required(spec, "gitops")
-    package = _required(spec, "orchestrator.package")
+    orchestrator = _required(spec, "orchestrator")
+    package = _required(orchestrator, "package")
     infrastructure = spec.get("infrastructure")
+    deployment = orchestrator.get("deployment", "embedded")
+    if deployment not in {"embedded", "external"}:
+        raise ConfigError(f"지원하지 않는 Orchestrator deployment입니다: {deployment!r}")
+    orchestrator_endpoint = orchestrator.get("endpoint")
+    if deployment == "external" and not orchestrator_endpoint:
+        raise ConfigError("external Orchestrator에는 spec.orchestrator.endpoint가 필요합니다.")
+    if deployment == "embedded" and orchestrator_endpoint:
+        raise ConfigError("embedded Orchestrator에는 별도 endpoint를 지정하지 않습니다.")
+    discovery = orchestrator.get("discovery", {})
+    discovery_mode = discovery.get("mode", "tag") if isinstance(discovery, dict) else None
+    if discovery_mode not in {"tag", "package"}:
+        raise ConfigError("Orchestrator discovery.mode는 tag 또는 package여야 합니다.")
 
     result = {
         "schema_version": SUPPORTED_API_VERSIONS[api_version],
@@ -98,7 +111,17 @@ def merge_instance_and_secrets(instance, secrets):
                 {"infrastructure": "terraform", "deletionPolicy": "require-explicit-approval"},
             ),
         },
-        "orchestrator": {"package": {"name": _required(package, "name"), "local_path": _required(package, "localPath")}},
+        "orchestrator": {
+            "deployment": deployment,
+            "url": orchestrator_endpoint or _required(spec, "endpoint"),
+            "verify_ssl": orchestrator.get("verifySsl", spec.get("verifySsl", True)),
+            "refresh_token": _required(secrets, "automation.refresh_token"),
+            "discovery": {
+                "mode": discovery_mode,
+                "require_non_empty": discovery.get("requireNonEmpty", False),
+            },
+            "package": {"name": _required(package, "name"), "local_path": _required(package, "localPath")},
+        },
         "infrastructure": None,
     }
     if infrastructure is not None:
@@ -142,6 +165,7 @@ def normalize_runtime_config(config):
         raise ConfigError(f"지원하지 않는 schema_version입니다: {config.get('schema_version')!r}")
     automation = _required(config, "automation")
     gitops = _required(config, "automation.gitops")
+    orchestrator = _required(config, "orchestrator")
     return {
         "vcf_url": _required(automation, "url"),
         "org": automation.get("organization", "default"),
@@ -149,7 +173,12 @@ def normalize_runtime_config(config):
         "verify_ssl": automation.get("verify_ssl", True),
         "gitops_tag": _required(gitops, "tag"),
         "projects": gitops.get("projects", []),
-        "package": _required(config, "orchestrator.package"),
+        "package": _required(orchestrator, "package"),
+        "vro_url": _required(orchestrator, "url"),
+        "vro_verify_ssl": orchestrator.get("verify_ssl", automation.get("verify_ssl", True)),
+        "vro_refresh_token": _required(automation, "refresh_token"),
+        "vro_discovery_mode": orchestrator.get("discovery", {}).get("mode", "tag"),
+        "vro_require_non_empty": orchestrator.get("discovery", {}).get("require_non_empty", False),
     }
 
 def build_terraform_variables(config):

@@ -735,16 +735,20 @@ def get_vro_status(client, config, root_dir):
     between the local Git repository and the remote vRO orchestrator.
     Returns the results dictionary.
     """
-    tag = config.get("gitops_tag")
-    if not tag:
-        raise ContentObservationError("gitops_tag가 없어 vRO status를 실행할 수 없습니다.")
+    discovery_mode = config.get("vro_discovery_mode", "tag")
+    scope = config.get("gitops_tag") if discovery_mode == "tag" else config.get("package", {}).get("name")
+    if not scope:
+        raise ContentObservationError(f"{discovery_mode} discovery 범위가 없어 vRO status를 실행할 수 없습니다.")
 
-    logger.info(f"--- Running GitOps Status Check for tag '{tag}' ---")
+    logger.info(f"--- Running GitOps Status Check for {discovery_mode} '{scope}' ---")
 
     # 1. Discover server resources by tag
     def required_discovery(resource_type):
         try:
-            value = client.find_resources_by_tag(resource_type, tag)
+            if discovery_mode == "package":
+                value = client.find_resources_by_package(resource_type, scope)
+            else:
+                value = client.find_resources_by_tag(resource_type, scope)
         except Exception as exc:
             raise ContentObservationError(f"vRO {resource_type} discovery 실패: {exc}") from exc
         if not isinstance(value, list):
@@ -755,6 +759,12 @@ def get_vro_status(client, config, root_dir):
     server_actions = required_discovery("Action")
     server_configs = required_discovery("ConfigurationElement")
     server_resources = required_discovery("ResourceElement")
+    if config.get("vro_require_non_empty") and not any(
+        (server_workflows, server_actions, server_configs, server_resources)
+    ):
+        raise ContentObservationError(
+            "vRO discovery가 0건입니다. 외부 Orchestrator endpoint, credential과 GitOps tag 범위를 확인하세요."
+        )
 
     # Map server assets by ID
     server_wf_map = {wf["id"]: wf for wf in server_workflows}
@@ -2230,16 +2240,11 @@ def main(argv=None):
             push_all_vra(None, config, root_dir, dry_run=True)
             return
         elif args.action == "push":
-            from vro_client import VroClient
+            from vro_client import from_runtime_config
             from vra_client import VraClient
 
             # Set up clients to check state
-            vro_client = VroClient(
-                vcf_url=config["vcf_url"],
-                refresh_token=config["refresh_token"],
-                org=config.get("org", "default"),
-                verify_ssl=config.get("verify_ssl", False)
-            )
+            vro_client = from_runtime_config(config)
             vra_client = VraClient(
                 vcf_url=config["vcf_url"],
                 refresh_token=config["refresh_token"],
@@ -2253,16 +2258,11 @@ def main(argv=None):
             logger.info("[DRY RUN] Operation verified.")
             return
 
-    from vro_client import VroClient
+    from vro_client import from_runtime_config
     from vra_client import VraClient
 
     # Set up clients
-    vro_client = VroClient(
-        vcf_url=config["vcf_url"],
-        refresh_token=config["refresh_token"],
-        org=config.get("org", "default"),
-        verify_ssl=config.get("verify_ssl", False)
-    )
+    vro_client = from_runtime_config(config)
     vra_client = VraClient(
         vcf_url=config["vcf_url"],
         refresh_token=config["refresh_token"],
@@ -2273,6 +2273,7 @@ def main(argv=None):
     target = {
         "name": source_config["environment"]["name"],
         "endpoint": config["vcf_url"],
+        "orchestratorEndpoint": config["vro_url"],
         "organization": config.get("org", "default"),
         "gitopsTag": config["gitops_tag"],
         "projects": sorted(config.get("projects", [])),

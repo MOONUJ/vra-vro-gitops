@@ -7,14 +7,33 @@ from urllib.parse import quote
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("vro_client")
 
+
+def from_runtime_config(config):
+    """Automation과 Orchestrator endpoint/credential을 혼동하지 않고 client를 만든다."""
+    return VroClient(
+        vcf_url=config["vcf_url"],
+        refresh_token=config.get("vro_refresh_token", config["refresh_token"]),
+        org=config.get("org", "default"),
+        verify_ssl=config.get("vro_verify_ssl", config.get("verify_ssl", True)),
+        endpoint=config.get("vro_url", config["vcf_url"]),
+    )
+
 class VroClient:
-    def __init__(self, vcf_url, refresh_token, org="default", verify_ssl=False):
+    def __init__(
+        self,
+        vcf_url,
+        refresh_token,
+        org="default",
+        verify_ssl=False,
+        endpoint=None,
+    ):
         """
         vRealize Orchestrator REST API Client using Token-based Auth.
         vcf_url: base URL of VCF Automation/vRA, e.g. https://vra.domain.com
         """
         self.vcf_url = vcf_url.rstrip('/')
-        self.vco_url = f"{self.vcf_url}/vco"
+        orchestrator_url = (endpoint or self.vcf_url).rstrip('/')
+        self.vco_url = orchestrator_url if orchestrator_url.endswith('/vco') else f"{orchestrator_url}/vco"
         self.refresh_token = refresh_token
         self.org = org
         self.verify_ssl = verify_ssl
@@ -247,6 +266,7 @@ class VroClient:
                                 "version": attrs.get("version", "0.0.0")
                             })
             return results
+
         else:
             logger.info(f"Finding {resource_type}s with tag '{tag}'...")
             path = f"/catalog/System/{resource_type}"
@@ -289,6 +309,49 @@ class VroClient:
                             "version": attrs.get("version", "0.0.0")
                         })
             return results
+
+    def find_resources_by_package(self, resource_type, package_name):
+        """Package membership을 mutation 없는 discovery 범위로 사용한다."""
+        package = self.get_package(package_name)
+        if package is None:
+            raise ValueError(f"Orchestrator package not found: {package_name}")
+        collection_by_type = {
+            "Workflow": "workflows",
+            "Action": "actions",
+            "ConfigurationElement": "configurations",
+            "ResourceElement": "resources",
+        }
+        collection_name = collection_by_type.get(resource_type)
+        if collection_name is None:
+            raise ValueError(f"Unsupported package resource type: {resource_type}")
+        items = package.get(collection_name, [])
+        if not isinstance(items, list):
+            raise ValueError(f"Malformed package {collection_name} response")
+        results = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            attributes = {}
+            for attribute in item.get("attribute", item.get("attributes", [])):
+                if isinstance(attribute, dict) and attribute.get("name"):
+                    attributes[attribute["name"]] = attribute.get("value", attribute.get("displayValue"))
+            href = item.get("href", "")
+            object_id = item.get("id") or attributes.get("id") or attributes.get("@id")
+            if not object_id and href:
+                object_id = href.rstrip("/").split("/")[-1]
+            name = item.get("name") or attributes.get("name") or attributes.get("@name")
+            if object_id and name:
+                result = {
+                    "id": object_id,
+                    "name": name,
+                    "type": resource_type,
+                    "href": href,
+                    "version": attributes.get("version", "0.0.0"),
+                }
+                if resource_type == "Action":
+                    result["fqn"] = attributes.get("fqn", "")
+                results.append(result)
+        return results
 
     # ==========================================
     # Category (Folder) API
@@ -626,4 +689,3 @@ class VroClient:
                 return response.json()
             except Exception:
                 return {"status": "success", "status_code": response.status_code}
-

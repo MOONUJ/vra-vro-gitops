@@ -42,7 +42,7 @@ import/adopt → author → validate → sync → release → restore → observ
 - `vcf_release.py`: backup, version artifact, restore
 - `cli.py`: Day-0 discovery, adopt, validate와 status
 - `configure.py`: 인스턴스 설정 검증과 이전 Terraform 입력 호환
-- 향후 loop: observe, plan, approval, apply, verify, record
+- `observe_loop.py`: instance 범위의 observe, journal과 반복 drift 기록
 
 Release는 `export`와 `release-build`를 분리합니다. `export`는 원격을 변경하지 않는 추출이고, `release-build`는 Git의 local content를 입력으로 불변 artifact를 만듭니다. 기존 version 디렉터리는 덮어쓰지 않으며 manifest에는 source commit, target, tool version과 artifact SHA-256을 기록합니다. 기존 `backup` 명령은 read-only `export` alias입니다.
 

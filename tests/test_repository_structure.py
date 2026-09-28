@@ -33,6 +33,8 @@ class RepositoryStructureTest(unittest.TestCase):
             "releases",
             "automation/loops",
             "tooling/template/bootstrap.py",
+            "docs/GETTING_STARTED.md",
+            "docs/OPERATIONS.md",
         ]
         for relative_path in required_paths:
             self.assertTrue((REPOSITORY_ROOT / relative_path).exists(), relative_path)

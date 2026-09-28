@@ -8,7 +8,7 @@
 | `instance.yaml` | 생성된 저장소에서 추적 | Automation endpoint, 조직, GitOps 범위와 관리 정책 |
 | `infrastructure/**/*.yaml` | 생성된 저장소에서 추적 | Day-0 리소스별 원하는 상태와 `metadata.remoteId` |
 | `secrets.example.json` | 추적 | 필요한 비밀 필드의 placeholder |
-| `secrets.json` | 제외 | Automation refresh token |
+| `secrets.json` | 제외 | Automation과 연결된 Orchestrator에 함께 사용하는 refresh token |
 | `instance.local.yaml` | 템플릿에서 제외 | 실제 연동 시험용 인스턴스 정의 |
 | `secrets.local.json` | 제외 | 실제 연동 시험용 비밀값 |
 
@@ -30,6 +30,43 @@ python3 tooling/template/bootstrap.py \
 
 검증은 원격 API를 호출하지 않습니다.
 실제 `instance.yaml`에서 템플릿 placeholder인 `com.example.vcf` package 이름과 경로는 거부됩니다. vRO package는 인스턴스에 맞는 고유 이름을 bootstrap 시 명시합니다.
+
+## Embedded와 external Orchestrator
+
+Embedded Orchestrator는 Automation endpoint의 `/vco/api`를 사용하며 기본 설정은 다음과 같습니다.
+
+```yaml
+spec:
+  orchestrator:
+    deployment: embedded
+    discovery:
+      mode: tag
+      requireNonEmpty: false
+```
+
+Automation에 외부 Orchestrator integration이 연결되어 있어도 GitOps 도구가 Automation endpoint의 embedded `/vco`를 조회해서는 외부 서버의 Workflow와 Action 원본을 얻을 수 없습니다. 외부 서버를 직접 지정합니다.
+
+```yaml
+spec:
+  orchestrator:
+    deployment: external
+    endpoint: https://vro.example.com
+    verifySsl: true
+    discovery:
+      mode: package
+      requireNonEmpty: true
+    package:
+      name: com.example.automation.dev
+      localPath: content/orchestrator/packages/com.example.automation.dev.package
+```
+
+이 저장소가 관리하는 external Orchestrator는 Automation integration과 같은 identity provider에 연결된 구성을 전제로 합니다. `secrets.json`의 Automation refresh token을 Automation OAuth endpoint에서 bearer token으로 교환한 뒤 Automation API와 외부 vRO `/vco/api` 양쪽에 사용합니다. 별도 vRO username/password와 Basic authentication은 지원하지 않습니다. 현재 로컬 수동 운영에서는 이 credential 하나를 사용하며, 역할별 credential 분리는 향후 CI 자동 적용 범위에서 다룹니다.
+
+외부 vRO의 `GET /vco/api/server/authentication`은 연결 진단에 사용할 수 있습니다. 응답이 공통 OAuth/VIDM 구성이 아니라면 이 템플릿의 지원 경계 밖으로 보고 중단합니다.
+
+External에서는 `discovery.mode: package`를 권장합니다. `GET /vco/api/packages/{packageName}`의 membership을 Workflow, Action, Configuration과 Resource의 관리 범위로 사용하므로 Automation integration에 노출된 항목이나 이름 검색과 혼동하지 않습니다. `tag`도 호환 discovery 방식으로 지원합니다.
+
+`requireNonEmpty: true`는 external baseline을 가져올 때 권장합니다. 선택한 package 또는 tag discovery가 4종 모두 0건이면 정상 빈 상태로 기록하지 않고 `INCOMPLETE`로 중단하므로 잘못된 endpoint, 권한 또는 범위를 조기에 발견할 수 있습니다. Package export도 같은 `package.name`을 사용합니다.
 
 저장소 실행 준비 상태는 다음 명령으로 확인합니다.
 

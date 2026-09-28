@@ -22,7 +22,12 @@ def main():
         config = load_source_config(args.instance, args.secrets)
         runtime = normalize_runtime_config(config)
         if args.action == "validate":
-            print(f"설정 검증 완료: environment={config['environment']['name']}, vcf_url={runtime['vcf_url']}")
+            print(
+                "설정 검증 완료: "
+                f"environment={config['environment']['name']}, "
+                f"vcf_url={runtime['vcf_url']}, vro_url={runtime['vro_url']}, "
+                f"vro_discovery={runtime['vro_discovery_mode']}"
+            )
             return
         terraform_variables = build_terraform_variables(config)
         output_path = Path(args.output).resolve()

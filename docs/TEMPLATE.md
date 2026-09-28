@@ -28,6 +28,8 @@
 
 GitHub에서 Template Repository로 설정하고 **Use this template**로 저장소를 생성합니다. 새 저장소에서 다음 명령을 실행합니다.
 
+최초 baseline까지의 전체 순서는 [처음 시작하기](GETTING_STARTED.md)를 따릅니다.
+
 ```bash
 python3 tooling/template/bootstrap.py \
   --name automation-seoul-prod \
@@ -44,18 +46,48 @@ AGENTS, Skill과 Loop 예시도 템플릿에서 함께 복사됩니다. 이들�
 
 `.template-version`은 저장소를 생성하거나 마지막으로 공통 변경을 반영한 템플릿 버전을 나타냅니다. 템플릿 변경은 tag와 changelog로 배포하는 방식을 권장합니다.
 
-`.vcf-gitops-version`은 인스턴스가 검증한 CLI package 버전을 고정합니다. `pyproject.toml`에서 wheel을 빌드하면 `vcf-gitops` 단일 entry point를 사용할 수 있습니다. 0.x 전환 기간에는 기존 `tooling/vcf/cli.py`, `vcf_sync.py`, `vcf_release.py` 경로도 유지하지만 새 자동화는 통합 CLI를 사용합니다. 기존 script 경로는 1.0에서 제거 여부를 다시 결정합니다.
+`.vcf-gitops-version`은 인스턴스가 검증한 CLI package 버전을 고정합니다. `pyproject.toml`에서 wheel을 빌드해 설치한 환경에서는 `vcf-gitops` 단일 entry point를 사용할 수 있습니다. 0.x 문서는 저장소에 포함된 `tooling/vcf/cli.py`, `vcf_sync.py`, `vcf_release.py` 경로를 기준으로 하며 기존 script 경로는 1.0에서 제거 여부를 다시 결정합니다.
 
 새 template checkout을 `--source`로 지정한 뒤 먼저 preview합니다.
 
 ```bash
-vcf-gitops template-update --source ../vcf-gitops-template --json
-vcf-gitops template-update \
+python3 ../vcf-gitops-template/tooling/vcf/template_update.py \
+  --source ../vcf-gitops-template --destination . --json
+python3 ../vcf-gitops-template/tooling/vcf/template_update.py \
   --source ../vcf-gitops-template \
-  --apply --approve-version 0.2.0
+  --destination . \
+  --apply --approve-version 0.3.0
 ```
 
-업데이트는 `tooling/`, `schemas/`, package/version 파일만 생성·갱신하고 파일을 삭제하지 않습니다. `instance.yaml`, `secrets*`, `infrastructure/`, `content/`, `lifecycle/`, `governance/`, `releases/`와 `.gitops/`는 항상 보호합니다. 실제 적용도 인스턴스 저장소의 별도 PR에서 검토합니다.
+새 template checkout의 updater를 직접 실행하므로 기존 인스턴스에 설치된 이전 updater가 새 migration 계약을 놓치지 않습니다.
+
+업데이트는 `tooling/`, `schemas/`, `docs/`, `tests/`, `.agents/`, package/version 파일만 생성·갱신하고 파일을 삭제하지 않습니다. 이 경로들은 template 공통 계약으로 취급하며 기존 인스턴스에서 수정한 파일은 preview와 PR에서 충돌 여부를 검토합니다. 인스턴스별 소개를 작성할 수 있도록 최상위 `README.md`는 기존 저장소에서 덮어쓰지 않으며 새 운영 가이드는 `docs/`를 통해 배포합니다. `instance.yaml`, `secrets*`, `infrastructure/`, `content/`, `lifecycle/`, `governance/`, `releases/`와 `.gitops/`는 항상 보호합니다. 보호된 설정 변경이 필요하면 preview의 `spec.migrations`에 표시되고 apply는 중단됩니다. 같은 작업 브랜치에서 `instance.yaml`을 먼저 수정하고 preview를 다시 생성해 migration이 없어져야 공통 tooling을 적용할 수 있습니다. 실제 적용도 인스턴스 저장소의 별도 PR에서 검토합니다.
+
+0.3.0에서 기존 external Orchestrator 인스턴스는 다음 설정을 먼저 추가합니다.
+
+```yaml
+spec:
+  orchestrator:
+    deployment: external
+    endpoint: https://orchestrator.example.com
+    verifySsl: true
+    discovery:
+      mode: package
+      requireNonEmpty: true
+    package:
+      name: com.example.automation.dev
+      localPath: content/orchestrator/packages/com.example.automation.dev.package
+```
+
+설정을 수정한 뒤 preview에서 `migrations: []`를 확인하고 updater를 적용합니다.
+
+```bash
+python3 ../vcf-gitops-template/tooling/vcf/template_update.py \
+  --source ../vcf-gitops-template \
+  --destination . \
+  --apply \
+  --approve-version 0.3.0
+```
 
 ## 실제 연동 검증
 
