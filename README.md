@@ -107,7 +107,7 @@ Day-0/1/2는 서비스가 사용되는 시점을 나타냅니다. Import, sync�
 GitHub Template로 만든 저장소는 원본 변경을 자동 상속하지 않습니다. 새 템플릿 checkout의 updater로 먼저 preview합니다.
 
 ```bash
-git switch -c feature/template-0.3.0
+git switch -c feature/template-0.3.1
 python3 ../vra-vro-gitops/tooling/vcf/template_update.py \
   --source ../vra-vro-gitops \
   --destination . \
@@ -121,7 +121,7 @@ python3 ../vra-vro-gitops/tooling/vcf/template_update.py \
   --source ../vra-vro-gitops \
   --destination . \
   --apply \
-  --approve-version 0.3.0
+  --approve-version 0.3.1
 
 python3 -m unittest discover -s tests
 python3 tooling/vcf/schema_validation.py

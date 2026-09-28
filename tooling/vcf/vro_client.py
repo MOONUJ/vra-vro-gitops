@@ -14,6 +14,7 @@ def from_runtime_config(config):
         vcf_url=config["vcf_url"],
         refresh_token=config.get("vro_refresh_token", config["refresh_token"]),
         org=config.get("org", "default"),
+        auth_verify_ssl=config.get("verify_ssl", True),
         verify_ssl=config.get("vro_verify_ssl", config.get("verify_ssl", True)),
         endpoint=config.get("vro_url", config["vcf_url"]),
     )
@@ -26,6 +27,7 @@ class VroClient:
         org="default",
         verify_ssl=False,
         endpoint=None,
+        auth_verify_ssl=None,
     ):
         """
         vRealize Orchestrator REST API Client using Token-based Auth.
@@ -36,12 +38,13 @@ class VroClient:
         self.vco_url = orchestrator_url if orchestrator_url.endswith('/vco') else f"{orchestrator_url}/vco"
         self.refresh_token = refresh_token
         self.org = org
+        self.auth_verify_ssl = verify_ssl if auth_verify_ssl is None else auth_verify_ssl
         self.verify_ssl = verify_ssl
         self.access_token = None
         self.headers = {}
         
-        # Suppress insecure request warnings if verify_ssl is False
-        if not self.verify_ssl:
+        # Automation OAuth와 vRO 중 하나라도 검증을 끈 경우 해당 경고를 억제한다.
+        if (not self.auth_verify_ssl or not self.verify_ssl) and hasattr(requests, "packages"):
             requests.packages.urllib3.disable_warnings(
                 requests.packages.urllib3.exceptions.InsecureRequestWarning
             )
@@ -62,7 +65,7 @@ class VroClient:
         }
         
         try:
-            response = requests.post(url, headers=headers, data=data, verify=self.verify_ssl, timeout=30)
+            response = requests.post(url, headers=headers, data=data, verify=self.auth_verify_ssl, timeout=30)
             if response.status_code >= 400:
                 logger.error(f"Auth failed (status {response.status_code}): {response.text}")
                 response.raise_for_status()
