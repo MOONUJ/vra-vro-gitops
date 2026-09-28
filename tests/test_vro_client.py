@@ -68,11 +68,14 @@ class VroClientConfigurationTest(unittest.TestCase):
         client.get_package = lambda name: {
             "workflows": [
                 {
-                    "href": "https://vro.example.com/vco/api/workflows/workflow-1",
-                    "attribute": [
-                        {"name": "name", "value": "Resize VM"},
-                        {"name": "version", "value": "1.2.0"},
-                    ],
+                    "workflows": {
+                        "href": "https://vro.example.com/vco/api/workflows/workflow-1",
+                        "attributes": [
+                            {"name": "id", "value": "workflow-1"},
+                            {"name": "name", "value": "Resize VM"},
+                            {"name": "version", "value": "1.2.0"},
+                        ],
+                    }
                 }
             ]
         }
@@ -82,6 +85,31 @@ class VroClientConfigurationTest(unittest.TestCase):
         self.assertEqual("workflow-1", resources[0]["id"])
         self.assertEqual("Resize VM", resources[0]["name"])
         self.assertEqual("1.2.0", resources[0]["version"])
+
+    def test_flat_package_membership_remains_supported(self):
+        client = from_runtime_config(
+            {
+                "vcf_url": "https://automation.example.com",
+                "refresh_token": "token",
+                "vro_url": "https://vro.example.com",
+            }
+        )
+        client.get_package = lambda name: {
+            "actions": [
+                {
+                    "href": "https://vro.example.com/vco/api/actions/action-1",
+                    "attribute": [
+                        {"name": "name", "value": "Resize VM"},
+                        {"name": "fqn", "value": "com.example/resizeVm"},
+                    ],
+                }
+            ]
+        }
+
+        resources = client.find_resources_by_package("Action", "com.example.gitops")
+
+        self.assertEqual("action-1", resources[0]["id"])
+        self.assertEqual("com.example/resizeVm", resources[0]["fqn"])
 
 
 if __name__ == "__main__":

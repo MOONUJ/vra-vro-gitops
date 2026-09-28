@@ -334,6 +334,17 @@ class VroClient:
         for item in items:
             if not isinstance(item, dict):
                 continue
+            # vRO 버전에 따라 package 항목이 바로 link이거나
+            # {"actions": {"attributes": [...], "href": ...}}처럼 감싸져 있다.
+            if not any(key in item for key in ("id", "name", "href", "attribute", "attributes")):
+                nested_items = [
+                    value
+                    for value in item.values()
+                    if isinstance(value, dict)
+                    and any(key in value for key in ("id", "name", "href", "attribute", "attributes"))
+                ]
+                if len(nested_items) == 1:
+                    item = nested_items[0]
             attributes = {}
             for attribute in item.get("attribute", item.get("attributes", [])):
                 if isinstance(attribute, dict) and attribute.get("name"):
