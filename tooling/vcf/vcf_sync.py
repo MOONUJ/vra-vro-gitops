@@ -194,43 +194,67 @@ def pull_all(client, config, root_dir, target_ids=None):
         logger.error("No 'gitops_tag' configured in config.json. Cannot execute pull-all.")
         sys.exit(1)
 
-    logger.info(f"--- Starting Pull-All Sync for tag '{tag}' ---")
+    discovery_mode = config.get("vro_discovery_mode", "tag")
+    scope = tag if discovery_mode == "tag" else config.get("package", {}).get("name")
+    if not scope:
+        raise ContentObservationError(
+            f"{discovery_mode} discovery 범위가 없어 vRO pull을 실행할 수 없습니다."
+        )
 
-    # 1. Discover workflows matching the tag
+    logger.info(f"--- Starting Pull-All Sync for {discovery_mode} '{scope}' ---")
+
+    def discover(resource_type):
+        if discovery_mode == "package":
+            return client.find_resources_by_package(resource_type, scope)
+        return client.find_resources_by_tag(resource_type, scope)
+
+    # 1. Discover workflows matching the configured scope
     try:
-        discovered_workflows = client.find_resources_by_tag("Workflow", tag)
+        discovered_workflows = discover("Workflow")
     except Exception as e:
-        logger.error(f"Failed to discover workflows by tag: {e}")
+        logger.error(f"Failed to discover workflows by {discovery_mode}: {e}")
         discovered_workflows = []
 
-    logger.info(f"Discovered {len(discovered_workflows)} workflows with tag '{tag}' on the server.")
+    logger.info(
+        f"Discovered {len(discovered_workflows)} workflows with {discovery_mode} "
+        f"'{scope}' on the server."
+    )
 
-    # 2. Discover actions matching the tag
+    # 2. Discover actions matching the configured scope
     try:
-        discovered_actions = client.find_resources_by_tag("Action", tag)
+        discovered_actions = discover("Action")
     except Exception as e:
-        logger.error(f"Failed to discover actions by tag: {e}")
+        logger.error(f"Failed to discover actions by {discovery_mode}: {e}")
         discovered_actions = []
 
-    logger.info(f"Discovered {len(discovered_actions)} actions matching tag '{tag}' on the server.")
+    logger.info(
+        f"Discovered {len(discovered_actions)} actions matching {discovery_mode} "
+        f"'{scope}' on the server."
+    )
 
-    # 3. Discover configurations matching the tag
+    # 3. Discover configurations matching the configured scope
     try:
-        discovered_configs = client.find_resources_by_tag("ConfigurationElement", tag)
+        discovered_configs = discover("ConfigurationElement")
     except Exception as e:
-        logger.error(f"Failed to discover configurations by tag: {e}")
+        logger.error(f"Failed to discover configurations by {discovery_mode}: {e}")
         discovered_configs = []
 
-    logger.info(f"Discovered {len(discovered_configs)} configurations matching tag '{tag}' on the server.")
+    logger.info(
+        f"Discovered {len(discovered_configs)} configurations matching {discovery_mode} "
+        f"'{scope}' on the server."
+    )
 
-    # 4. Discover resources matching the tag
+    # 4. Discover resources matching the configured scope
     try:
-        discovered_resources = client.find_resources_by_tag("ResourceElement", tag)
+        discovered_resources = discover("ResourceElement")
     except Exception as e:
-        logger.error(f"Failed to discover resources by tag: {e}")
+        logger.error(f"Failed to discover resources by {discovery_mode}: {e}")
         discovered_resources = []
 
-    logger.info(f"Discovered {len(discovered_resources)} resources matching tag '{tag}' on the server.")
+    logger.info(
+        f"Discovered {len(discovered_resources)} resources matching {discovery_mode} "
+        f"'{scope}' on the server."
+    )
 
     if target_ids is not None:
         discovered_workflows = [wf for wf in discovered_workflows if wf["id"] in target_ids.get("Workflow", set())]

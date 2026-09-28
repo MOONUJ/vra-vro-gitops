@@ -56,7 +56,7 @@ python3 ../vcf-gitops-template/tooling/vcf/template_update.py \
 python3 ../vcf-gitops-template/tooling/vcf/template_update.py \
   --source ../vcf-gitops-template \
   --destination . \
-  --apply --approve-version 0.3.2
+  --apply --approve-version 0.3.3
 ```
 
 새 template checkout의 updater를 직접 실행하므로 기존 인스턴스에 설치된 이전 updater가 새 migration 계약을 놓치지 않습니다.
@@ -86,7 +86,7 @@ python3 ../vcf-gitops-template/tooling/vcf/template_update.py \
   --source ../vcf-gitops-template \
   --destination . \
   --apply \
-  --approve-version 0.3.2
+  --approve-version 0.3.3
 ```
 
 ## 실제 연동 검증
