@@ -45,6 +45,17 @@
           "required": ["package"],
           "additionalProperties": false,
           "properties": {
+            "deployment": {"enum": ["embedded", "external"]},
+            "endpoint": {"type": "string", "pattern": "^https://"},
+            "verifySsl": {"type": "boolean"},
+            "discovery": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": {"enum": ["tag", "package"]},
+                "requireNonEmpty": {"type": "boolean"}
+              }
+            },
             "package": {
               "type": "object",
               "required": ["name", "localPath"],

@@ -17,6 +17,10 @@ spec:
     infrastructure: native
     deletionPolicy: require-explicit-approval
   orchestrator:
+    deployment: embedded
+    discovery:
+      mode: tag
+      requireNonEmpty: false
     package:
       name: com.example.vcf
       localPath: content/orchestrator/packages/com.example.vcf.package

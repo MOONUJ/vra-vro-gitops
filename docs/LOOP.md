@@ -83,7 +83,8 @@ spec:
 인스턴스 저장소에서는 파일명의 `.example`을 제거하고 `instanceRef`를 맞춘 뒤 별도 검토를 거쳐 `enabled: true`로 변경합니다. 예시 파일, 비활성 Loop, 추적되지 않은 `instance.yaml`, 잘못된 `instanceRef`는 원격 조회 전 차단됩니다.
 
 ```bash
-vcf-gitops observe-loop --loop automation/loops/dev-day2-drift.yaml
+.venv/bin/python tooling/vcf/observe_loop.py \
+  --loop automation/loops/dev-day2-drift.yaml
 ```
 
 실행기는 인스턴스별 lock을 획득하고 `.gitops/loop-runs/`에 관찰 hash, 시도 횟수, tool version과 민감정보가 제거된 결과를 기록합니다. 마지막 hash와 반복 횟수는 `.gitops/loop-state/`에 저장합니다. 네트워크 연결, timeout, HTTP 429와 5xx만 횟수·경과 시간 한도 안에서 재시도합니다. 인증·권한·스키마·정책 오류는 재시도하지 않습니다. 정상 상태가 반복되면 `notify: false`, drift나 실패 또는 상태 변화가 있으면 `notify: true`를 출력하므로 scheduler는 이 값을 알림 조건으로 사용합니다.
@@ -91,7 +92,8 @@ vcf-gitops observe-loop --loop automation/loops/dev-day2-drift.yaml
 ## 구현 순서
 
 1. 완료: 안정적인 read-only observation, schema, lock, 제한 재시도와 journal
-2. 다음: 승인된 개발 환경 Day-2 변경 한 건에 한정한 apply/verify Pilot
-3. 이후: 충분한 운영 증거가 쌓인 뒤 Day-1 승격 연계 검토
+2. 완료: 승인된 개발 환경 Day-2 변경 한 건의 로컬 수동 apply/verify와 복구 Pilot
+3. 유예: CI 자동 apply 도입 시 runner RBAC와 승인자 분리
+4. 이후: 충분한 운영 증거가 쌓인 뒤 Day-1 승격과 production 확대 검토
 
 Day-0 자동 apply와 운영 환경 무인 mutation은 별도 위험 검토 대상으로 남깁니다.

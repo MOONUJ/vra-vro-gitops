@@ -26,6 +26,21 @@ class FailingVroClient:
         raise PermissionError("forbidden")
 
 
+class EmptyVroClient:
+    def find_resources_by_tag(self, resource_type, tag):
+        return []
+
+
+class PackageScopedVroClient:
+    def find_resources_by_package(self, resource_type, package_name):
+        if resource_type == "Workflow":
+            return [{"id": "workflow-1", "name": "Resize VM", "version": "1.0.0"}]
+        return []
+
+    def find_resources_by_tag(self, resource_type, tag):
+        raise AssertionError("package discovery must not use tag search")
+
+
 class FailingVraClient:
     def get_projects(self):
         raise PermissionError("forbidden")
@@ -99,6 +114,29 @@ class ContentObservationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ContentObservationError, "discovery 실패"):
                 get_vro_status(FailingVroClient(), {"gitops_tag": "example"}, directory)
+
+    def test_required_non_empty_vro_discovery_rejects_false_empty(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ContentObservationError, "0건"):
+                get_vro_status(
+                    EmptyVroClient(),
+                    {"gitops_tag": "example", "vro_require_non_empty": True},
+                    directory,
+                )
+
+    def test_package_membership_can_scope_vro_discovery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = get_vro_status(
+                PackageScopedVroClient(),
+                {
+                    "gitops_tag": "unused",
+                    "package": {"name": "com.example.gitops"},
+                    "vro_discovery_mode": "package",
+                    "vro_require_non_empty": True,
+                },
+                directory,
+            )
+            self.assertEqual([("workflow-1", "Resize VM")], result["Workflow"]["SERVER_ONLY"])
 
     def test_vra_project_failure_is_not_treated_as_empty(self):
         with tempfile.TemporaryDirectory() as directory:

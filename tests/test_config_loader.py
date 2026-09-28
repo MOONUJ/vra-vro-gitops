@@ -1,7 +1,10 @@
 import sys
 import tempfile
 import unittest
+import json
 from pathlib import Path
+
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT / "tooling" / "vcf"))
@@ -39,6 +42,47 @@ class ConfigLoaderTest(unittest.TestCase):
             secrets.write_bytes((REPOSITORY_ROOT / "secrets.example.json").read_bytes())
             with self.assertRaisesRegex(ConfigError, "placeholder"):
                 load_source_config(instance, secrets)
+
+    def test_external_orchestrator_reuses_automation_oauth_for_independent_endpoint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            instance = yaml.safe_load((REPOSITORY_ROOT / "instance.example.yaml").read_text(encoding="utf-8"))
+            instance["spec"]["orchestrator"].update(
+                {
+                    "deployment": "external",
+                    "endpoint": "https://vro.example.com",
+                    "verifySsl": True,
+                    "discovery": {"mode": "package", "requireNonEmpty": True},
+                }
+            )
+            instance_path = root / "external.yaml"
+            secrets_path = root / "secrets.json"
+            instance_path.write_text(yaml.safe_dump(instance), encoding="utf-8")
+            secrets_path.write_text(
+                json.dumps(
+                    {"automation": {"refresh_token": "automation-token"}}
+                ),
+                encoding="utf-8",
+            )
+
+            runtime = normalize_runtime_config(load_source_config(instance_path, secrets_path))
+
+            self.assertEqual("https://vro.example.com", runtime["vro_url"])
+            self.assertEqual("automation-token", runtime["vro_refresh_token"])
+            self.assertEqual("package", runtime["vro_discovery_mode"])
+            self.assertTrue(runtime["vro_require_non_empty"])
+
+    def test_external_orchestrator_requires_endpoint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            instance = yaml.safe_load((REPOSITORY_ROOT / "instance.example.yaml").read_text(encoding="utf-8"))
+            instance["spec"]["orchestrator"]["deployment"] = "external"
+            instance_path = root / "external.yaml"
+            secrets_path = root / "secrets.json"
+            instance_path.write_text(yaml.safe_dump(instance), encoding="utf-8")
+            secrets_path.write_text(json.dumps({"automation": {"refresh_token": "token"}}), encoding="utf-8")
+            with self.assertRaisesRegex(ConfigError, "endpoint"):
+                load_source_config(instance_path, secrets_path)
 
 if __name__ == "__main__":
     unittest.main()

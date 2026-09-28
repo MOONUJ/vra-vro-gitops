@@ -12,17 +12,19 @@
 
 | 단계 | ID | 제목 | 상태 | 우선순위 |
 | ---: | --- | --- | :---: | :---: |
-| 7 | [012](012-day2-approved-reconcile-pilot.md) | 개발환경 Day-2 승인 기반 Reconcile Pilot | WAITING_FOR_RBAC_EVIDENCE | Medium |
-| 7 | [015](015-pilot-rbac-and-approval-separation.md) | Pilot Apply Runner RBAC와 승인자 분리 증거 | TODO | High |
+| 7 | [012](012-day2-approved-reconcile-pilot.md) | 개발환경 Day-2 승인 기반 Reconcile Pilot | LOCAL_MANUAL_PILOT_COMPLETE | Medium |
+| 7 | [015](015-pilot-rbac-and-approval-separation.md) | CI Apply Runner RBAC와 승인자 분리 | DEFERRED_UNTIL_CI_APPLY | Medium |
 
 ## 의존 관계
 
 ```text
-012 기능·복구 Pilot 완료
+012 로컬 수동 기능·복구 Pilot 완료
           ↓
-015 RBAC·credential·승인자 분리 증거
+CI 자동 apply 도입 결정
           ↓
-012 완료 및 production 확대 여부 결정
+015 runner RBAC·credential·승인자 분리
+          ↓
+production 확대 여부 별도 결정
 ```
 
 ## 티켓 운영 규칙

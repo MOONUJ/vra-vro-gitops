@@ -239,17 +239,18 @@ class ObserveLoopRunner:
 def _build_observer(repository_root: Path, source_config: dict, products: list[str]):
     from vcf_sync import get_vra_status, get_vro_status
     from vra_client import VraClient
-    from vro_client import VroClient
+    from vro_client import from_runtime_config
 
     config = normalize_runtime_config(source_config)
     target = {
         "name": source_config["environment"]["name"],
         "endpoint": config["vcf_url"],
+        "orchestratorEndpoint": config["vro_url"],
         "organization": config.get("org", "default"),
         "gitopsTag": config["gitops_tag"],
         "projects": sorted(config.get("projects", [])),
     }
-    vro_client = VroClient(config["vcf_url"], config["refresh_token"], config.get("org", "default"), config.get("verify_ssl", True))
+    vro_client = from_runtime_config(config)
     vra_client = VraClient(config["vcf_url"], config["refresh_token"], config.get("org", "default"), config.get("verify_ssl", True))
 
     def observe():
@@ -265,7 +266,7 @@ def _build_observer(repository_root: Path, source_config: dict, products: list[s
             "spec": {"target": target, "products": {key: normalize_product_status(value) for key, value in raw.items()}},
         }
 
-    return observe, config["refresh_token"]
+    return observe, [config["refresh_token"]]
 
 
 def main(argv=None) -> int:
@@ -277,10 +278,10 @@ def main(argv=None) -> int:
     repository_root = Path(args.repository_root).resolve()
     try:
         loop, source_config = validate_loop_target(repository_root, args.loop, args.secrets)
-        observer, refresh_token = _build_observer(repository_root, source_config, loop["spec"]["products"])
+        observer, secret_values = _build_observer(repository_root, source_config, loop["spec"]["products"])
         version_path = repository_root / ".vcf-gitops-version"
         version = version_path.read_text(encoding="utf-8").strip() if version_path.is_file() else "development"
-        path, journal = ObserveLoopRunner(repository_root, version).run(loop, observer, [refresh_token])
+        path, journal = ObserveLoopRunner(repository_root, version).run(loop, observer, secret_values)
         print(json.dumps({"journal": str(path), "status": journal["status"]}, ensure_ascii=False, sort_keys=True))
         return 1 if journal["status"]["state"] == "FAILED" else (2 if journal["status"]["state"] == "DRIFT" else 0)
     except (ConfigError, LoopError, SchemaValidationError, OSError) as exc:

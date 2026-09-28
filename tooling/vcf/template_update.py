@@ -11,6 +11,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
+
 
 COMMON_FILES = {
     ".template-version",
@@ -18,7 +20,10 @@ COMMON_FILES = {
     "pyproject.toml",
 }
 COMMON_ROOTS = {
+    ".agents",
+    "docs",
     "schemas",
+    "tests",
     "tooling",
 }
 PROTECTED_ROOTS = {
@@ -41,6 +46,9 @@ PROTECTED_FILES = {
 
 class TemplateUpdateError(RuntimeError):
     """안전한 template update 계약 위반."""
+
+
+ORCHESTRATOR_MIGRATION_ID = "0.3.0-orchestrator-connection"
 
 
 @dataclass(frozen=True)
@@ -81,6 +89,52 @@ def _is_protected(relative: Path) -> bool:
     return bool(relative.parts and relative.parts[0] in PROTECTED_ROOTS)
 
 
+def _migration_advisories(destination: Path) -> list[dict]:
+    """보호된 desired state에 필요한 migration을 쓰지 않고 보고한다."""
+    instance_path = destination / "instance.yaml"
+    if not instance_path.is_file():
+        return []
+    try:
+        instance = yaml.safe_load(instance_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise TemplateUpdateError(f"instance.yaml migration 검사 실패: {exc}") from exc
+    if not isinstance(instance, dict):
+        raise TemplateUpdateError("instance.yaml migration 검사 실패: 최상위 값은 객체여야 합니다.")
+    orchestrator = instance.get("spec", {}).get("orchestrator")
+    if not isinstance(orchestrator, dict):
+        return [
+            {
+                "id": ORCHESTRATOR_MIGRATION_ID,
+                "required": True,
+                "path": "instance.yaml:spec.orchestrator",
+                "reason": "Orchestrator 연결과 discovery 설정이 없습니다.",
+            }
+        ]
+    missing = []
+    if orchestrator.get("deployment") not in {"embedded", "external"}:
+        missing.append("spec.orchestrator.deployment")
+    discovery = orchestrator.get("discovery")
+    if not isinstance(discovery, dict) or discovery.get("mode") not in {"tag", "package"}:
+        missing.append("spec.orchestrator.discovery.mode")
+    if not isinstance(discovery, dict) or not isinstance(discovery.get("requireNonEmpty"), bool):
+        missing.append("spec.orchestrator.discovery.requireNonEmpty")
+    if orchestrator.get("deployment") == "external" and not orchestrator.get("endpoint"):
+        missing.append("spec.orchestrator.endpoint")
+    if "authentication" in orchestrator:
+        missing.append("spec.orchestrator.authentication 제거")
+    if not missing:
+        return []
+    return [
+        {
+            "id": ORCHESTRATOR_MIGRATION_ID,
+            "required": True,
+            "path": "instance.yaml:spec.orchestrator",
+            "reason": "0.3.0은 embedded/external endpoint와 discovery 범위를 명시적으로 구분합니다.",
+            "requiredChanges": missing,
+        }
+    ]
+
+
 def plan_update(source, destination) -> dict:
     source = Path(source).resolve()
     destination = Path(destination).resolve()
@@ -115,6 +169,7 @@ def plan_update(source, destination) -> dict:
             "deleteMissing": False,
             "protectedRoots": sorted(PROTECTED_ROOTS),
             "changes": changes,
+            "migrations": _migration_advisories(destination),
         },
     }
 
@@ -124,6 +179,16 @@ def apply_update(preview: dict, approve_version: str) -> list[str]:
     if approve_version != version:
         raise TemplateUpdateError(
             f"template version 승인이 일치하지 않습니다: expected --approve-version {version}"
+        )
+    pending = [
+        migration["id"]
+        for migration in preview["spec"].get("migrations", [])
+        if migration.get("required")
+    ]
+    if pending:
+        raise TemplateUpdateError(
+            "보호된 instance migration을 먼저 반영하고 preview를 다시 생성해야 합니다: "
+            + ", ".join(sorted(pending))
         )
     source = Path(preview["spec"]["source"])
     destination = Path(preview["spec"]["destination"])
@@ -167,6 +232,10 @@ def main(argv=None) -> int:
             print(f"template version: {preview['metadata']['templateVersion']}")
             for change in preview["spec"]["changes"]:
                 print(f"{change['action']:9} {change['path']}")
+            for migration in preview["spec"].get("migrations", []):
+                print(f"MIGRATION {migration['id']}: {migration['reason']}")
+                for required_change in migration.get("requiredChanges", []):
+                    print(f"          - {required_change}")
             if args.apply:
                 print(f"적용 완료: {preview['status']['count']}개 파일")
             else:
