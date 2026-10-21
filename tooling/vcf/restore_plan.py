@@ -10,7 +10,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from release_artifact import verify_release
+if __package__:
+    from .release_artifact import verify_release
+else:
+    from release_artifact import verify_release
 
 
 PLAN_API_VERSION = "gitops.vcf.example/v1alpha1"

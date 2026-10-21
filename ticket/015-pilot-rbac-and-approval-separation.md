@@ -1,5 +1,7 @@
 # [TICKET-015] CI Apply Runner RBAC와 승인자 분리
 
+> 현재 PR CI는 credential 없는 정적 검증 전용이다. 이 티켓은 향후 CI가 live state를 조회하거나 승인된 apply를 실행하기로 별도 결정된 경우에만 재개한다.
+
 - **상태:** `DEFERRED_UNTIL_CI_APPLY`
 - **우선순위:** `Medium`
 - **단계:** 7 - 제한적 자동화 Pilot 운영 통제

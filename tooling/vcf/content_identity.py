@@ -13,7 +13,10 @@ from typing import Any, Iterable
 
 import yaml
 
-from config_loader import REPOSITORY_ROOT
+if __package__:
+    from .config_loader import REPOSITORY_ROOT
+else:
+    from config_loader import REPOSITORY_ROOT
 
 
 API_VERSION = "gitops.vcf.example/v1alpha1"

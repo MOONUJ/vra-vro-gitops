@@ -33,6 +33,7 @@ Schema의 major 또는 alpha 버전을 변경할 때는 기존 문서를 자동�
 - versioned repository schema
 - instance와 secret example 설정
 - infrastructure와 content identity
-- Terraform format
 
-저장소 branch protection에서는 `repository`와 `terraform-format` job을 PR 필수 check로 사용합니다.
+저장소 branch protection에서는 `repository` job을 PR 필수 check로 사용합니다.
+
+이 CI는 desired-state 후보의 정적 계약과 설치형 CLI만 검증합니다. Automation/vRO live state 조회, plan 생성과 apply는 인스턴스 저장소의 별도 운영 단계이며 PR CI에서 실행하지 않습니다.

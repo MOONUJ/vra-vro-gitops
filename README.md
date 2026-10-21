@@ -31,22 +31,48 @@ flowchart LR
 
 원격 변경은 자동으로 실행되지 않습니다. Plan artifact와 exact hash를 사람이 검토하고 승인해야 하며, plan 이후 Git·로컬 콘텐츠·원격 상태가 달라지면 apply를 거부합니다.
 
+## 상태 모델
+
+Template 저장소에는 실제 인스턴스의 원하는 상태가 없습니다. 생성된 인스턴스 저장소에서는 상태를 다음처럼 구분합니다.
+
+| 위치 | 역할 |
+| --- | --- |
+| 인스턴스 저장소 `main` | 검토·승인된 desired state |
+| 로컬 작업 브랜치와 working tree | 아직 승인되지 않은 desired-state 후보 |
+| Automation과 Orchestrator | 현재 live state |
+| `.gitops/` | observation, preview, plan, result와 journal 같은 로컬 실행 증거 |
+
+`status`는 Git의 desired state와 원격 live state를 비교합니다. 원격 변경을 수용할 때는 `pull-preview → review → accept-pull → PR`로 desired state를 갱신하고, Git 변경을 원격에 적용할 때는 `plan → approval → apply → verify`로 live state를 수렴시킵니다. PR CI는 자격 증명 없이 schema, policy, 패키지와 테스트만 검증하며 Automation에 접속하거나 원격 변경을 실행하지 않습니다.
+
 ## 처음 시작하기
 
 전체 절차는 [시작 가이드](docs/GETTING_STARTED.md)를 따릅니다. 아래는 생성된 저장소에서 실행하는 최소 흐름입니다.
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r tooling/vcf/requirements.txt
-
-.venv/bin/python tooling/template/bootstrap.py \
+python3 tooling/template/setup.py \
   --name automation-seoul-dev \
   --endpoint https://automation.example.com \
   --environment-tag seoul-dev \
-  --package-name com.example.automation.seoul.dev
+  --package-name com.example.automation.seoul.dev \
+  --project actual-project-name
 ```
 
-다음 두 파일을 실제 환경에 맞게 수정합니다.
+생략한 값은 대화형으로 입력받으며 refresh token은 화면에 표시하지 않습니다. setup은 `.venv` 생성, dependency 설치, `instance.yaml`과 권한 `0600`의 `secrets.json` 생성, schema·설정 검증까지 실행합니다. External Orchestrator에는 `--orchestrator-deployment external --orchestrator-endpoint https://orchestrator.example.com`을 추가합니다. 기존 token은 `--force-secrets`를 명시하지 않으면 덮어쓰지 않습니다.
+
+비대화식 실행에서는 token을 명령행에 노출하지 않고 환경변수로 주입합니다.
+
+```bash
+VCF_AUTOMATION_REFRESH_TOKEN='...' python3 tooling/template/setup.py \
+  --non-interactive \
+  --name automation-seoul-dev \
+  --endpoint https://automation.example.com \
+  --environment-tag seoul-dev \
+  --package-name com.example.automation.seoul.dev \
+  --project actual-project-name \
+  --orchestrator-deployment embedded
+```
+
+생성된 다음 두 파일을 검토합니다.
 
 - `instance.yaml`: `spec.gitops.projects`, Embedded/external Orchestrator 설정과 관리 범위
 - `secrets.json`: `automation.refresh_token`; 이 파일은 Git에 커밋하지 않음
@@ -61,7 +87,7 @@ git commit -m "chore: initialize automation instance"
 .venv/bin/python tooling/vcf/cli.py context --json
 ```
 
-`repositoryMode: instance`, `baselineTracked: true`, `configValid: true`를 확인합니다. 기존 Automation을 연결하는 경우 원격 mutation 전에 반드시 [시작 가이드의 baseline import](docs/GETTING_STARTED.md#5-기존-automation-baseline-가져오기)를 완료합니다.
+`repositoryMode: instance`, `baselineTracked: true`, `configValid: true`, `currentBranch: main`을 확인합니다. 기존 Automation을 연결하는 경우 원격 mutation 전에 반드시 [시작 가이드의 baseline import](docs/GETTING_STARTED.md#5-기존-automation-baseline-가져오기)를 완료합니다.
 
 첫 연결은 read-only 조회로 확인합니다.
 
@@ -107,7 +133,7 @@ Day-0/1/2는 서비스가 사용되는 시점을 나타냅니다. Import, sync�
 GitHub Template로 만든 저장소는 원본 변경을 자동 상속하지 않습니다. 새 템플릿 checkout의 updater로 먼저 preview합니다.
 
 ```bash
-git switch -c feature/template-0.3.3
+git switch -c feature/template-0.4.0
 python3 ../vra-vro-gitops/tooling/vcf/template_update.py \
   --source ../vra-vro-gitops \
   --destination . \
@@ -121,7 +147,7 @@ python3 ../vra-vro-gitops/tooling/vcf/template_update.py \
   --source ../vra-vro-gitops \
   --destination . \
   --apply \
-  --approve-version 0.3.3
+  --approve-version 0.4.0
 
 python3 -m unittest discover -s tests
 python3 tooling/vcf/schema_validation.py
@@ -144,6 +170,8 @@ Updater는 `instance.yaml`, `content/`, `infrastructure/`, `lifecycle/`, secret,
 ## 안전 경계
 
 - Template 또는 모호한 저장소 모드에서는 원격 mutation을 실행하지 않습니다.
+- 원격 mutation은 인스턴스 저장소의 승인된 desired state인 `main`에서만 실행합니다.
+- Day-0 인프라는 native `infrastructure/` manifest만 지원하며 제거된 Terraform 경로를 사용하지 않습니다.
 - 인증·권한·API·페이지네이션·응답 해석 중 하나라도 실패하면 빈 상태로 계속하지 않습니다.
 - `pull`은 preview를 만들 뿐 `content/`를 바로 변경하지 않습니다.
 - Git에서 파일이 사라졌다는 이유만으로 원격 리소스를 삭제하지 않습니다.

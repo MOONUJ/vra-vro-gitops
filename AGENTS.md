@@ -7,7 +7,7 @@
 - 템플릿 `main`에는 실제 endpoint, 인스턴스 콘텐츠와 상태를 넣지 않는다.
 - 생성된 저장소의 `main`은 연결된 Automation의 승인된 원하는 상태다.
 - 생성된 저장소의 `instance.yaml`, `infrastructure/`, `content/`는 Git이 소유하는 상태다.
-- `secrets.json`, discovery cache와 생성된 Terraform 입력은 로컬 상태이며 커밋하지 않는다.
+- `secrets.json`, discovery cache와 생성된 실행 산출물은 로컬 상태이며 커밋하지 않는다.
 - 기존 인스턴스는 import 후 검토된 baseline부터 Git 관리 대상으로 삼는다.
 
 수명주기, import, sync, release, 설정 또는 loop 작업에는 `$vcf-gitops-lifecycle` 스킬을 사용한다.
@@ -38,12 +38,11 @@
 | `instance.yaml` | 생성된 저장소가 추적하는 Automation 연결, 범위와 관리 정책 |
 | `secrets.json` | refresh token과 외부 시스템 자격 증명, Git 제외 |
 | `infrastructure/` | 리소스별 Day-0 원하는 상태와 원격 ID |
-| `foundation/automation/terraform/` | 이전/선택적 Terraform 기반 구성, native와 동시 소유 금지 |
 | `content/automation/` | Automation 콘텐츠 원본 |
 | `content/orchestrator/` | vRO 콘텐츠 원본 |
 | `lifecycle/` | 콘텐츠의 Day-0/1/2 분류 |
 | `tooling/vcf/` | 설정, API client, sync, release 도구 |
-| `tooling/template/` | 템플릿에서 인스턴스 저장소를 초기화하는 도구 |
+| `tooling/template/` | 로컬 venv setup, 인스턴스 bootstrap과 template update 도구 |
 | `releases/` | 버전별 불변 릴리스 |
 | `automation/loops/` | 향후 승인 기반 reconcile loop |
 
@@ -72,10 +71,9 @@
 
 ## 안전 경계
 
-- `apply`, `terraform apply`, `restore`, `push`, `push-all`은 원격 변경이다. 사용자가 작업과 대상을 명시적으로 승인한 경우에만 실행한다.
-- `foundation/automation/terraform/`에서 기존 state/backend 연결을 확인하기 전에는 plan 결과를 신뢰하거나 apply하지 않는다.
-- `terraform plan`, `status`, 지원되는 dry-run을 먼저 사용한다.
-- secret, token, password, Terraform state, cache 또는 생성된 입력 파일을 커밋하지 않는다.
+- `apply`, `restore`, `push`, `push-all`은 원격 변경이다. 사용자가 작업과 대상을 명시적으로 승인한 경우에만 실행한다.
+- `status`, 불변 plan과 지원되는 dry-run을 먼저 사용한다.
+- secret, token, password, cache 또는 생성된 입력 파일을 커밋하지 않는다.
 - 템플릿 연동 시험에서는 실제 설정 파일 경로를 `--instance`, `--secrets`로 명시한다.
 - `adopt`는 인자 생략으로 전체를 선택하지 않는다. 전체 채택은 `--all`을 명시하고 먼저 `--dry-run`을 실행하며, 필요하면 반복 가능한 `--kind`로 범위를 제한한다.
 - `discover`, `adopt`, `status` 중 인증·권한·API·ID 또는 manifest 충돌이 발생하면 불완전한 결과를 적용하지 않고 중단한다.
@@ -99,7 +97,6 @@ python3 tooling/vcf/cli.py --infrastructure-root infrastructure validate
 python3 tooling/vcf/content_identity.py validate
 python3 tooling/vcf/schema_validation.py
 python3 tooling/vcf/cli.py context
-terraform -chdir=foundation/automation/terraform fmt -check
 ```
 
 스킬 변경 시 다음을 추가한다.

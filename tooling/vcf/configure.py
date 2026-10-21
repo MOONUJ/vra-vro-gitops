@@ -2,40 +2,29 @@
 """인스턴스 정의와 비밀값을 검증하고 도구별 로컬 입력을 생성한다."""
 
 import argparse
-import json
 import sys
-from pathlib import Path
 
-from config_loader import ConfigError, REPOSITORY_ROOT, build_terraform_variables, load_source_config, normalize_runtime_config
-
-DEFAULT_TERRAFORM_OUTPUT = REPOSITORY_ROOT / "foundation" / "automation" / "terraform" / "generated.auto.tfvars.json"
+if __package__:
+    from .config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
+else:
+    from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
 
 
 def main():
     parser = argparse.ArgumentParser(description="VCF Automation 인스턴스 설정 도구")
-    parser.add_argument("action", choices=["validate", "terraform"])
+    parser.add_argument("action", choices=["validate"])
     parser.add_argument("--instance", default=str(REPOSITORY_ROOT / "instance.yaml"))
     parser.add_argument("--secrets", default=str(REPOSITORY_ROOT / "secrets.json"))
-    parser.add_argument("--output", default=str(DEFAULT_TERRAFORM_OUTPUT))
     args = parser.parse_args()
     try:
         config = load_source_config(args.instance, args.secrets)
         runtime = normalize_runtime_config(config)
-        if args.action == "validate":
-            print(
-                "설정 검증 완료: "
-                f"environment={config['environment']['name']}, "
-                f"vcf_url={runtime['vcf_url']}, vro_url={runtime['vro_url']}, "
-                f"vro_discovery={runtime['vro_discovery_mode']}"
-            )
-            return
-        terraform_variables = build_terraform_variables(config)
-        output_path = Path(args.output).resolve()
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        with output_path.open("w", encoding="utf-8") as output_file:
-            json.dump(terraform_variables, output_file, ensure_ascii=False, indent=2)
-            output_file.write("\n")
-        print(f"Terraform 입력 생성 완료: {output_path}")
+        print(
+            "설정 검증 완료: "
+            f"environment={config['environment']['name']}, "
+            f"vcf_url={runtime['vcf_url']}, vro_url={runtime['vro_url']}, "
+            f"vro_discovery={runtime['vro_discovery_mode']}"
+        )
     except (ConfigError, OSError) as exc:
         print(f"설정 오류: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc

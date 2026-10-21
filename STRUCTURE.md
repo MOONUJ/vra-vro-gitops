@@ -27,8 +27,6 @@ vcf-automation-gitops-template/
 │   ├── storage-profiles/
 │   ├── image-profiles/
 │   └── projects/
-├── foundation/
-│   └── automation/terraform/             # 이전/선택적 Terraform 경로
 ├── content/
 │   ├── automation/                       # Blueprint, ABX, 정책 등
 │   └── orchestrator/                     # Workflow, Action, Package 등
@@ -50,7 +48,7 @@ vcf-automation-gitops-template/
 │   ├── observe_loop.py                   # observe-only loop와 journal
 │   ├── vcf_sync.py
 │   └── vcf_release.py
-├── tooling/template/                     # instance 초기화와 update 호환 wrapper
+├── tooling/template/                     # 로컬 setup, instance 초기화와 update 호환 wrapper
 ├── releases/                             # 불변 릴리스 아티팩트
 ├── automation/loops/                     # 승인 기반 loop 정의
 ├── .gitops/                               # 로컬 discovery, plan과 apply 결과, Git 제외
@@ -87,7 +85,7 @@ vcf-automation-gitops-template/
 
 | 이전 경로 | 새 경로 | 전환 결과 |
 | --- | --- | --- |
-| `vra/` | `foundation/automation/terraform/` | 템플릿 소스 이동 후 이전 로컬 디렉터리 제거 완료 |
+| `vra/` | `infrastructure/` | Terraform 호환 경로 제거 후 native manifest로 전환 |
 | `auto/` | `content/automation/` | sync 도구가 새 경로 사용 |
 | `vro/` | `content/orchestrator/` | sync와 package 경로 갱신 |
 | `gitops/artifacts/` | `releases/` | release 도구 기본 출력 변경 |

@@ -12,7 +12,10 @@ from urllib.parse import unquote, urlparse
 
 import yaml
 
-from infrastructure import InfrastructureError, InfrastructureService, RESOURCE_DEFINITIONS, normalize_local, normalize_remote
+if __package__:
+    from .infrastructure import InfrastructureError, InfrastructureService, RESOURCE_DEFINITIONS, normalize_local, normalize_remote
+else:
+    from infrastructure import InfrastructureError, InfrastructureService, RESOURCE_DEFINITIONS, normalize_local, normalize_remote
 
 
 PLAN_API_VERSION = "gitops.vcf.example/v1alpha1"

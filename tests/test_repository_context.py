@@ -15,6 +15,7 @@ from repository import (  # noqa: E402
     RepositoryContextError,
     RepositoryMode,
     classify_operation,
+    current_branch,
     detect_repository_context,
     is_worktree_clean,
     require_instance_mode,
@@ -31,6 +32,7 @@ class RepositoryContextTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             self._git(root, "init")
+            self._git(root, "branch", "-M", "main")
             self.assertEqual(detect_repository_context(root).mode, RepositoryMode.TEMPLATE)
 
             (root / "instance.yaml").write_text("kind: AutomationInstance\n", encoding="utf-8")
@@ -116,6 +118,7 @@ class RepositoryContextTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             self._git(root, "init")
+            self._git(root, "branch", "-M", "main")
             self._git(root, "config", "user.email", "test@example.com")
             self._git(root, "config", "user.name", "Test")
             (root / "instance.yaml").write_text("kind: AutomationInstance\n", encoding="utf-8")
@@ -124,12 +127,27 @@ class RepositoryContextTest(unittest.TestCase):
             context = detect_repository_context(root)
 
             self.assertTrue(is_worktree_clean(context))
+            self.assertEqual("main", current_branch(context))
             require_operation_allowed(context, "apply")
 
             (root / "instance.yaml").write_text("kind: Changed\n", encoding="utf-8")
             self.assertFalse(is_worktree_clean(context))
             with self.assertRaisesRegex(RepositoryContextError, "추적 파일 변경"):
                 require_operation_allowed(context, "apply")
+
+    def test_operation_guard_rejects_unapproved_branch(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self._git(root, "init")
+            self._git(root, "config", "user.email", "test@example.com")
+            self._git(root, "config", "user.name", "Test")
+            (root / "instance.yaml").write_text("kind: AutomationInstance\n", encoding="utf-8")
+            self._git(root, "add", "instance.yaml")
+            self._git(root, "commit", "-m", "baseline")
+            self._git(root, "switch", "-c", "feature/candidate")
+
+            with self.assertRaisesRegex(RepositoryContextError, "main branch"):
+                require_operation_allowed(detect_repository_context(root), "apply")
 
 
 if __name__ == "__main__":

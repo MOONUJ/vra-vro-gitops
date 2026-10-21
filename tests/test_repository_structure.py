@@ -22,7 +22,6 @@ class RepositoryStructureTest(unittest.TestCase):
             ".template-version",
             "instance.example.yaml",
             "infrastructure",
-            "foundation/automation/terraform",
             "content/automation",
             "content/orchestrator",
             "tooling/vcf/vcf_sync.py",
@@ -33,6 +32,7 @@ class RepositoryStructureTest(unittest.TestCase):
             "releases",
             "automation/loops",
             "tooling/template/bootstrap.py",
+            "tooling/template/setup.py",
             "docs/GETTING_STARTED.md",
             "docs/OPERATIONS.md",
         ]

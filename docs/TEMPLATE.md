@@ -9,7 +9,7 @@
 ## 템플릿에 포함하는 것
 
 - 디렉터리 구조와 lifecycle manifest
-- native 인프라 GitOps, 선택적 Terraform, sync, release와 bootstrap 도구
+- native 인프라 GitOps, sync, release와 bootstrap 도구
 - `instance.example.yaml`, `secrets.example.json`
 - AGENTS, Skill, Loop 계약
 - 공통 테스트와 문서
@@ -20,7 +20,7 @@
 
 - 실제 endpoint가 담긴 `instance.yaml`
 - 자격 증명, token, 인증서
-- Terraform state와 plan
+- 외부 도구의 state와 plan
 - 특정 Automation에서 import한 콘텐츠
 - 특정 인스턴스용 release artifact와 실행 로그
 
@@ -56,7 +56,7 @@ python3 ../vcf-gitops-template/tooling/vcf/template_update.py \
 python3 ../vcf-gitops-template/tooling/vcf/template_update.py \
   --source ../vcf-gitops-template \
   --destination . \
-  --apply --approve-version 0.3.3
+  --apply --approve-version 0.4.0
 ```
 
 새 template checkout의 updater를 직접 실행하므로 기존 인스턴스에 설치된 이전 updater가 새 migration 계약을 놓치지 않습니다.
@@ -86,7 +86,7 @@ python3 ../vcf-gitops-template/tooling/vcf/template_update.py \
   --source ../vcf-gitops-template \
   --destination . \
   --apply \
-  --approve-version 0.3.3
+  --approve-version 0.4.0
 ```
 
 ## 실제 연동 검증

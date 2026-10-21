@@ -13,11 +13,10 @@ __pycache__/
 .venv-auto/
 .agent/
 
-# Terraform ignores
+# Legacy Terraform migration safety; state and generated inputs must never be committed.
 .terraform/
 *.tfvars
 *.tfstate
 *.tfstate.backup
 *.tfstate.*.backup
-foundation/automation/terraform/generated.auto.tfvars.json
 .terraform.lock.hcl

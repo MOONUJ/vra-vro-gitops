@@ -34,6 +34,7 @@ class TemplateUpdateTest(unittest.TestCase):
             yaml.safe_dump(
                 {
                     "spec": {
+                        "management": {"infrastructure": "native"},
                         "orchestrator": {
                             "deployment": "embedded",
                             "discovery": {"mode": "tag", "requireNonEmpty": False},
@@ -86,6 +87,21 @@ class TemplateUpdateTest(unittest.TestCase):
         with self.assertRaisesRegex(TemplateUpdateError, "migration"):
             apply_update(preview, "2.0.0")
         self.assertNotIn("deployment", yaml.safe_load((self.destination / "instance.yaml").read_text())["spec"]["orchestrator"])
+
+    def test_preview_blocks_legacy_terraform_ownership(self):
+        instance = yaml.safe_load((self.destination / "instance.yaml").read_text(encoding="utf-8"))
+        instance["spec"]["management"]["infrastructure"] = "terraform"
+        (self.destination / "instance.yaml").write_text(yaml.safe_dump(instance), encoding="utf-8")
+        legacy_root = self.destination / "foundation" / "automation" / "terraform"
+        legacy_root.mkdir(parents=True)
+        (legacy_root / "providers.tf").write_text("terraform {}\n", encoding="utf-8")
+
+        preview = plan_update(self.source, self.destination)
+        migration = next(item for item in preview["spec"]["migrations"] if item["id"] == "0.4.0-native-infrastructure-only")
+        self.assertTrue(migration["required"])
+        self.assertEqual(2, len(migration["requiredChanges"]))
+        with self.assertRaisesRegex(TemplateUpdateError, "migration"):
+            apply_update(preview, "2.0.0")
 
 
 if __name__ == "__main__":

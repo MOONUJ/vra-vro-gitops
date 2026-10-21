@@ -15,7 +15,19 @@ DEFAULT_INSTANCE_EXAMPLE = REPOSITORY_ROOT / "instance.example.yaml"
 DEFAULT_SECRETS_EXAMPLE = REPOSITORY_ROOT / "secrets.example.json"
 
 
-def write_instance(source, destination, name, endpoint, organization, environment_tag, package_name, force=False):
+def write_instance(
+    source,
+    destination,
+    name,
+    endpoint,
+    organization,
+    environment_tag,
+    package_name,
+    force=False,
+    projects=None,
+    orchestrator_deployment="embedded",
+    orchestrator_endpoint=None,
+):
     destination = Path(destination)
     if destination.exists() and not force:
         raise FileExistsError(f"이미 파일이 존재합니다: {destination}")
@@ -28,8 +40,20 @@ def write_instance(source, destination, name, endpoint, organization, environmen
     instance["spec"]["organization"] = organization
     instance["spec"]["environmentTag"] = environment_tag
     instance["spec"]["gitops"]["tag"] = environment_tag
-    instance["spec"]["orchestrator"]["package"]["name"] = package_name
-    instance["spec"]["orchestrator"]["package"]["localPath"] = (
+    if projects:
+        instance["spec"]["gitops"]["projects"] = projects
+    orchestrator = instance["spec"]["orchestrator"]
+    orchestrator["deployment"] = orchestrator_deployment
+    if orchestrator_deployment == "external":
+        if not orchestrator_endpoint:
+            raise ValueError("external Orchestrator에는 endpoint가 필요합니다.")
+        orchestrator["endpoint"] = orchestrator_endpoint.rstrip("/")
+        orchestrator["discovery"] = {"mode": "package", "requireNonEmpty": True}
+    else:
+        orchestrator.pop("endpoint", None)
+        orchestrator["discovery"] = {"mode": "tag", "requireNonEmpty": False}
+    orchestrator["package"]["name"] = package_name
+    orchestrator["package"]["localPath"] = (
         f"content/orchestrator/packages/{package_name}.package"
     )
 
@@ -55,6 +79,9 @@ def main():
     parser.add_argument("--organization", default="default", help="Automation 조직 이름")
     parser.add_argument("--environment-tag", help="GitOps 범위 태그, 기본값은 --name")
     parser.add_argument("--package-name", required=True, help="인스턴스 전용 vRO package 이름")
+    parser.add_argument("--project", action="append", help="관리할 Automation project 이름, 반복 가능")
+    parser.add_argument("--orchestrator-deployment", choices=["embedded", "external"], default="embedded")
+    parser.add_argument("--orchestrator-endpoint", help="external Orchestrator URL")
     parser.add_argument("--output", default=str(REPOSITORY_ROOT / "instance.yaml"), help="생성할 인스턴스 파일")
     parser.add_argument("--secrets-output", default=str(REPOSITORY_ROOT / "secrets.json"), help="생성할 비밀값 파일")
     parser.add_argument("--force", action="store_true", help="기존 인스턴스 파일 덮어쓰기")
@@ -70,9 +97,12 @@ def main():
             args.environment_tag or args.name,
             args.package_name,
             args.force,
+            args.project,
+            args.orchestrator_deployment,
+            args.orchestrator_endpoint,
         )
         secrets_created = copy_secrets_example(DEFAULT_SECRETS_EXAMPLE, args.secrets_output)
-    except (OSError, KeyError, TypeError, yaml.YAMLError) as exc:
+    except (OSError, KeyError, TypeError, ValueError, yaml.YAMLError) as exc:
         print(f"초기화 오류: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 

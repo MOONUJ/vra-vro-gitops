@@ -29,6 +29,9 @@ class TemplateBootstrapTest(unittest.TestCase):
                 "default",
                 "lab",
                 "com.example.automation.lab",
+                projects=["project-a", "project-b"],
+                orchestrator_deployment="external",
+                orchestrator_endpoint="https://orchestrator.lab.example.com/",
             )
             created = copy_secrets_example(REPOSITORY_ROOT / "secrets.example.json", secrets_path)
 
@@ -37,6 +40,10 @@ class TemplateBootstrapTest(unittest.TestCase):
             self.assertEqual(instance["metadata"]["name"], "automation-lab")
             self.assertEqual(instance["spec"]["endpoint"], "https://automation.lab.example.com")
             self.assertEqual(instance["spec"]["gitops"]["tag"], "lab")
+            self.assertEqual(instance["spec"]["gitops"]["projects"], ["project-a", "project-b"])
+            self.assertEqual(instance["spec"]["orchestrator"]["deployment"], "external")
+            self.assertEqual(instance["spec"]["orchestrator"]["endpoint"], "https://orchestrator.lab.example.com")
+            self.assertEqual(instance["spec"]["orchestrator"]["discovery"]["mode"], "package")
             self.assertEqual(instance["spec"]["orchestrator"]["package"]["name"], "com.example.automation.lab")
             self.assertEqual(
                 instance["spec"]["orchestrator"]["package"]["localPath"],

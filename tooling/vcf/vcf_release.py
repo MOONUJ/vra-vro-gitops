@@ -13,23 +13,18 @@ import subprocess
 from datetime import datetime
 from urllib.parse import quote
 import yaml
-from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
-from release_artifact import (
-    ReleaseArtifactError,
-    build_local_release,
-    finalize_release,
-    prepare_staging,
-    verify_release,
-)
-from policy import PolicyError, evaluate_plan, load_policy, policy_hash
-from restore_plan import RestorePlanError, RestorePlanService
-from repository import (
-    RepositoryContextError,
-    RepositoryMode,
-    detect_repository_context,
-    is_worktree_clean,
-    require_operation_allowed,
-)
+if __package__:
+    from .config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
+    from .release_artifact import ReleaseArtifactError, build_local_release, finalize_release, prepare_staging, verify_release
+    from .policy import PolicyError, evaluate_plan, load_policy, policy_hash
+    from .restore_plan import RestorePlanError, RestorePlanService
+    from .repository import RepositoryContextError, RepositoryMode, detect_repository_context, is_worktree_clean, require_operation_allowed
+else:
+    from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
+    from release_artifact import ReleaseArtifactError, build_local_release, finalize_release, prepare_staging, verify_release
+    from policy import PolicyError, evaluate_plan, load_policy, policy_hash
+    from restore_plan import RestorePlanError, RestorePlanService
+    from repository import RepositoryContextError, RepositoryMode, detect_repository_context, is_worktree_clean, require_operation_allowed
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("vcf_provision")
@@ -1243,8 +1238,12 @@ def main(argv=None):
 
     os.makedirs(args.artifacts_dir, exist_ok=True)
 
-    from vro_client import from_runtime_config
-    from vra_client import VraClient
+    if __package__:
+        from .vro_client import from_runtime_config
+        from .vra_client import VraClient
+    else:
+        from vro_client import from_runtime_config
+        from vra_client import VraClient
 
     # Initialize Clients
     vro_client = from_runtime_config(config)
@@ -1262,8 +1261,12 @@ def main(argv=None):
         "organization": config.get("org", "default"),
     }
     if args.action in {"restore-plan", "restore-apply"}:
-        from content_observation import complete_observation
-        from vcf_sync import get_vra_status, get_vro_status
+        if __package__:
+            from .content_observation import complete_observation
+            from .vcf_sync import get_vra_status, get_vro_status
+        else:
+            from content_observation import complete_observation
+            from vcf_sync import get_vra_status, get_vro_status
 
         try:
             validate_restore_projects(vra_client, config)

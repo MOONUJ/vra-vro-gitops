@@ -112,7 +112,7 @@ Plan의 CREATE, UPDATE와 DELETE 목록을 검토합니다.
 
 CREATE에는 `--approve-create Kind:<manifest-name>`, DELETE에는 plan과 동일한 `--approve-delete Kind:<remote-id>`가 추가로 필요합니다. Manifest가 Git에서 사라졌다는 이유만으로 원격 삭제를 만들지 않습니다.
 
-`management.infrastructure: native`에서는 동일 리소스를 `foundation/automation/terraform/`과 동시에 관리하지 않습니다.
+Day-0 인프라는 `management.infrastructure: native`와 `infrastructure/` manifest로만 관리합니다.
 
 ## 릴리스와 복구
 

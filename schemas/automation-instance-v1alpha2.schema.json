@@ -36,7 +36,7 @@
           "required": ["infrastructure", "deletionPolicy"],
           "additionalProperties": false,
           "properties": {
-            "infrastructure": {"enum": ["native", "terraform"]},
+            "infrastructure": {"enum": ["native"]},
             "deletionPolicy": {"enum": ["require-explicit-approval", "deny"]}
           }
         },
@@ -66,8 +66,7 @@
               }
             }
           }
-        },
-        "infrastructure": {"type": "object"}
+        }
       }
     }
   }

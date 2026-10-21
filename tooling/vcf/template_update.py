@@ -49,6 +49,7 @@ class TemplateUpdateError(RuntimeError):
 
 
 ORCHESTRATOR_MIGRATION_ID = "0.3.0-orchestrator-connection"
+NATIVE_INFRASTRUCTURE_MIGRATION_ID = "0.4.0-native-infrastructure-only"
 
 
 @dataclass(frozen=True)
@@ -135,6 +136,36 @@ def _migration_advisories(destination: Path) -> list[dict]:
     ]
 
 
+def _native_infrastructure_migration_advisories(destination: Path) -> list[dict]:
+    """제거된 Terraform 소유 경로가 남아 있으면 native 전환을 요구한다."""
+    instance_path = destination / "instance.yaml"
+    if not instance_path.is_file():
+        return []
+    try:
+        instance = yaml.safe_load(instance_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise TemplateUpdateError(f"instance.yaml migration 검사 실패: {exc}") from exc
+    management = instance.get("spec", {}).get("management", {}) if isinstance(instance, dict) else {}
+    legacy_root = destination / "foundation" / "automation" / "terraform"
+    legacy_files = sorted(path for path in legacy_root.rglob("*") if path.is_file()) if legacy_root.is_dir() else []
+    required_changes = []
+    if management.get("infrastructure") != "native":
+        required_changes.append("instance.yaml:spec.management.infrastructure를 native로 변경")
+    if legacy_files:
+        required_changes.append("native baseline 검토 후 foundation/automation/terraform 제거")
+    if not required_changes:
+        return []
+    return [
+        {
+            "id": NATIVE_INFRASTRUCTURE_MIGRATION_ID,
+            "required": True,
+            "path": "instance.yaml:spec.management.infrastructure",
+            "reason": "0.4.0부터 Day-0 인프라는 native manifest만 지원합니다.",
+            "requiredChanges": required_changes,
+        }
+    ]
+
+
 def plan_update(source, destination) -> dict:
     source = Path(source).resolve()
     destination = Path(destination).resolve()
@@ -169,7 +200,8 @@ def plan_update(source, destination) -> dict:
             "deleteMissing": False,
             "protectedRoots": sorted(PROTECTED_ROOTS),
             "changes": changes,
-            "migrations": _migration_advisories(destination),
+            "migrations": _migration_advisories(destination)
+            + _native_infrastructure_migration_advisories(destination),
         },
     }
 

@@ -6,13 +6,22 @@ import argparse
 import logging
 import re
 import subprocess
-from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
-from content_identity import content_hash
-from content_observation import ContentObservationError, complete_observation, incomplete_observation
-from content_plan import ContentPlanError, ContentPlanService
-from content_pull import ContentPullError, ContentPullService
-from policy import PolicyError, evaluate_plan, load_policy, policy_hash
-from repository import RepositoryContextError, detect_repository_context, require_operation_allowed
+if __package__:
+    from .config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
+    from .content_identity import content_hash
+    from .content_observation import ContentObservationError, complete_observation, incomplete_observation
+    from .content_plan import ContentPlanError, ContentPlanService
+    from .content_pull import ContentPullError, ContentPullService
+    from .policy import PolicyError, evaluate_plan, load_policy, policy_hash
+    from .repository import RepositoryContextError, detect_repository_context, require_operation_allowed
+else:
+    from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
+    from content_identity import content_hash
+    from content_observation import ContentObservationError, complete_observation, incomplete_observation
+    from content_plan import ContentPlanError, ContentPlanService
+    from content_pull import ContentPullError, ContentPullService
+    from policy import PolicyError, evaluate_plan, load_policy, policy_hash
+    from repository import RepositoryContextError, detect_repository_context, require_operation_allowed
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("vcf_gitops")
@@ -2264,8 +2273,12 @@ def main(argv=None):
             push_all_vra(None, config, root_dir, dry_run=True)
             return
         elif args.action == "push":
-            from vro_client import from_runtime_config
-            from vra_client import VraClient
+            if __package__:
+                from .vro_client import from_runtime_config
+                from .vra_client import VraClient
+            else:
+                from vro_client import from_runtime_config
+                from vra_client import VraClient
 
             # Set up clients to check state
             vro_client = from_runtime_config(config)
@@ -2282,8 +2295,12 @@ def main(argv=None):
             logger.info("[DRY RUN] Operation verified.")
             return
 
-    from vro_client import from_runtime_config
-    from vra_client import VraClient
+    if __package__:
+        from .vro_client import from_runtime_config
+        from .vra_client import VraClient
+    else:
+        from vro_client import from_runtime_config
+        from vra_client import VraClient
 
     # Set up clients
     vro_client = from_runtime_config(config)

@@ -12,7 +12,10 @@ from typing import Any
 
 import yaml
 
-from config_loader import REPOSITORY_ROOT
+if __package__:
+    from .config_loader import REPOSITORY_ROOT
+else:
+    from config_loader import REPOSITORY_ROOT
 
 
 SCHEMA_BY_KIND = {

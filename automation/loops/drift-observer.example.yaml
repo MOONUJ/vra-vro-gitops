@@ -16,4 +16,4 @@ spec:
     backoffSeconds: 2
   repeatDriftThreshold: 3
   approval:
-    requiredFor: [native-apply, push, push-all, restore, terraform-apply]
+    requiredFor: [native-apply, push, push-all, restore]

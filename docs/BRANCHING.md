@@ -18,7 +18,7 @@ feature 또는 fix → local validation → integration/* → 실제 lab 검증
 `integration/*`는 환경을 장기간 표현하는 브랜치가 아니라 일회성 검증 브랜치입니다. 다음 파일은 커밋하지 않습니다.
 
 - `instance.local.yaml`, `secrets.local.json`, token과 인증서
-- Terraform state, plan과 생성된 tfvars
+- 외부 도구의 state, plan과 생성된 입력
 - 실제 Automation에서 가져온 인스턴스 전용 콘텐츠
 - 시험 중 생성된 릴리스와 로그
 
@@ -49,7 +49,7 @@ branch → local validation → PR → review → main merge
        → plan/dry-run → environment approval → apply → verify → tag
 ```
 
-`main`에는 직접 push와 force push를 금지하고 PR·검증·승인을 요구합니다. PR 브랜치에서 원격 Automation으로 자동 push하지 않습니다. native 인프라 변경은 status와 승인 가능한 plan을, Terraform 변경은 plan을, 콘텐츠 변경은 normalized diff를 검토합니다.
+`main`에는 직접 push와 force push를 금지하고 PR·검증·승인을 요구합니다. 원격 mutation은 승인된 desired state인 `main`에서만 허용하며 PR 브랜치에서는 실행하지 않습니다. native 인프라 변경은 status와 승인 가능한 plan을, 콘텐츠 변경은 normalized diff를 검토합니다.
 
 ## Import와 drift
 
