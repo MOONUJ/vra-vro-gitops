@@ -83,7 +83,6 @@ def merge_instance_and_secrets(instance, secrets):
     gitops = _required(spec, "gitops")
     orchestrator = _required(spec, "orchestrator")
     package = _required(orchestrator, "package")
-    infrastructure = spec.get("infrastructure")
     deployment = orchestrator.get("deployment", "embedded")
     if deployment not in {"embedded", "external"}:
         raise ConfigError(f"지원하지 않는 Orchestrator deployment입니다: {deployment!r}")
@@ -96,6 +95,12 @@ def merge_instance_and_secrets(instance, secrets):
     discovery_mode = discovery.get("mode", "tag") if isinstance(discovery, dict) else None
     if discovery_mode not in {"tag", "package"}:
         raise ConfigError("Orchestrator discovery.mode는 tag 또는 package여야 합니다.")
+    management = spec.get(
+        "management",
+        {"infrastructure": "native", "deletionPolicy": "require-explicit-approval"},
+    )
+    if management.get("infrastructure") != "native":
+        raise ConfigError("Day-0 인프라는 management.infrastructure: native만 지원합니다.")
 
     result = {
         "schema_version": SUPPORTED_API_VERSIONS[api_version],
@@ -106,10 +111,7 @@ def merge_instance_and_secrets(instance, secrets):
             "refresh_token": _required(secrets, "automation.refresh_token"),
             "verify_ssl": spec.get("verifySsl", True),
             "gitops": {"tag": _required(gitops, "tag"), "projects": gitops.get("projects", [])},
-            "management": spec.get(
-                "management",
-                {"infrastructure": "terraform", "deletionPolicy": "require-explicit-approval"},
-            ),
+            "management": management,
         },
         "orchestrator": {
             "deployment": deployment,
@@ -122,22 +124,7 @@ def merge_instance_and_secrets(instance, secrets):
             },
             "package": {"name": _required(package, "name"), "local_path": _required(package, "localPath")},
         },
-        "infrastructure": None,
     }
-    if infrastructure is not None:
-        vsphere = dict(_required(infrastructure, "vsphere"))
-        nsxt = dict(_required(infrastructure, "nsxt"))
-        vsphere.update(username=_required(secrets, "vsphere.username"), password=_required(secrets, "vsphere.password"))
-        nsxt.update(username=_required(secrets, "nsxt.username"), password=_required(secrets, "nsxt.password"))
-        result["infrastructure"] = {
-            "vsphere": vsphere,
-            "nsxt": nsxt,
-            "cloud_zone": _required(infrastructure, "cloudZone"),
-            "network_profile": _required(infrastructure, "networkProfile"),
-            "storage_profile": _required(infrastructure, "storageProfile"),
-            "image_profile": _required(infrastructure, "imageProfile"),
-            "project": _required(infrastructure, "project"),
-        }
     return result
 
 
@@ -179,57 +166,4 @@ def normalize_runtime_config(config):
         "vro_refresh_token": _required(automation, "refresh_token"),
         "vro_discovery_mode": orchestrator.get("discovery", {}).get("mode", "tag"),
         "vro_require_non_empty": orchestrator.get("discovery", {}).get("require_non_empty", False),
-    }
-
-def build_terraform_variables(config):
-    """공통 형식에서 Day-0 Terraform 입력을 생성한다."""
-    normalize_runtime_config(config)
-    environment = _required(config, "environment")
-    automation = _required(config, "automation")
-    infrastructure = _required(config, "infrastructure")
-    if infrastructure is None:
-        raise ConfigError("native 인프라 모드에서는 Terraform 입력을 생성하지 않습니다.")
-    vsphere = _required(infrastructure, "vsphere")
-    nsxt = _required(infrastructure, "nsxt")
-    cloud_zone = _required(infrastructure, "cloud_zone")
-    network_profile = _required(infrastructure, "network_profile")
-    storage_profile = _required(infrastructure, "storage_profile")
-    image_profile = _required(infrastructure, "image_profile")
-    project = _required(infrastructure, "project")
-    return {
-        "vra_url": _required(automation, "url"),
-        "vra_refresh_token": _required(automation, "refresh_token"),
-        "vra_insecure": not automation.get("verify_ssl", True),
-        "vra_organization": automation.get("organization", "default"),
-        "vsphere_cloud_account_name": _required(vsphere, "cloudAccountName"),
-        "vsphere_cloud_account_description": vsphere.get("description", "vSphere Cloud Account managed by Terraform"),
-        "vsphere_endpoint": _required(vsphere, "endpoint"),
-        "vsphere_username": _required(vsphere, "username"),
-        "vsphere_password": _required(vsphere, "password"),
-        "vsphere_dc": _required(vsphere, "datacenter"),
-        "vsphere_region_name": vsphere.get("regionName", _required(vsphere, "datacenter")),
-        "nsxt_cloud_account_name": _required(nsxt, "cloudAccountName"),
-        "nsxt_cloud_account_description": nsxt.get("description", "NSX-T Cloud Account managed by Terraform"),
-        "nsxt_endpoint": _required(nsxt, "endpoint"),
-        "nsxt_username": _required(nsxt, "username"),
-        "nsxt_password": _required(nsxt, "password"),
-        "environment_tag": _required(environment, "tag"),
-        "cloud_zone_name": _required(cloud_zone, "name"),
-        "cloud_zone_description": cloud_zone.get("description", "vSphere Cloud Zone managed by Terraform"),
-        "cloud_zone_placement_policy": cloud_zone.get("placementPolicy", "DEFAULT"),
-        "network_profile_name": _required(network_profile, "name"),
-        "network_profile_description": network_profile.get("description", "Network Profile managed by Terraform"),
-        "network_profile_isolation_type": network_profile.get("isolationType", "NONE"),
-        "network_profile_fabric_network_ids": network_profile.get("fabricNetworkIds", []),
-        "storage_profile_name": _required(storage_profile, "name"),
-        "storage_profile_description": storage_profile.get("description", "vSphere Storage Profile managed by Terraform"),
-        "storage_profile_default_item": storage_profile.get("defaultItem", False),
-        "storage_profile_provisioning_type": storage_profile.get("provisioningType", "thin"),
-        "image_profile_name": _required(image_profile, "name"),
-        "image_profile_description": image_profile.get("description", "Image Profile managed by Terraform"),
-        "image_mappings": [{"name": _required(item, "name"), "image_id": _required(item, "imageId")} for item in _required(image_profile, "mappings")],
-        "project_name": _required(project, "name"),
-        "project_description": project.get("description", "Infrastructure Project managed by Terraform"),
-        "project_zone_priority": project.get("zonePriority", 1),
-        "project_max_instances": project.get("maxInstances", 100),
     }

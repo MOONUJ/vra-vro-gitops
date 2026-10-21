@@ -6,22 +6,25 @@ import json
 import sys
 from pathlib import Path
 
-from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
-from infrastructure import InfrastructureError, InfrastructureService, RESOURCE_DEFINITIONS
-from infrastructure_plan import InfrastructurePlanService
-from policy import PolicyError, evaluate_plan, load_policy, policy_hash
-from repository import (
-    RepositoryContextError,
-    RepositoryMode,
-    detect_repository_context,
-    is_worktree_clean,
-    require_operation_allowed,
-    validate_infrastructure_paths,
-)
+if __package__:
+    from .config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
+    from .infrastructure import InfrastructureError, InfrastructureService, RESOURCE_DEFINITIONS
+    from .infrastructure_plan import InfrastructurePlanService
+    from .policy import PolicyError, evaluate_plan, load_policy, policy_hash
+    from .repository import RepositoryContextError, RepositoryMode, current_branch, detect_repository_context, is_worktree_clean, require_operation_allowed, validate_infrastructure_paths
+else:
+    from config_loader import ConfigError, REPOSITORY_ROOT, load_source_config, normalize_runtime_config
+    from infrastructure import InfrastructureError, InfrastructureService, RESOURCE_DEFINITIONS
+    from infrastructure_plan import InfrastructurePlanService
+    from policy import PolicyError, evaluate_plan, load_policy, policy_hash
+    from repository import RepositoryContextError, RepositoryMode, current_branch, detect_repository_context, is_worktree_clean, require_operation_allowed, validate_infrastructure_paths
 
 
 def _runtime_context(instance_path, secrets_path):
-    from vra_client import VraClient
+    if __package__:
+        from .vra_client import VraClient
+    else:
+        from vra_client import VraClient
 
     source = load_source_config(instance_path, secrets_path)
     runtime = normalize_runtime_config(source)
@@ -113,6 +116,7 @@ def main(argv=None):
         repository_context = detect_repository_context(REPOSITORY_ROOT)
         if args.action == "context":
             worktree_clean = is_worktree_clean(repository_context)
+            branch = current_branch(repository_context)
             config_valid = False
             config_error = None
             if repository_context.mode == RepositoryMode.INSTANCE:
@@ -127,7 +131,8 @@ def main(argv=None):
                 "baselineTracked": repository_context.mode == RepositoryMode.INSTANCE,
                 "configValid": config_valid,
                 "worktreeClean": worktree_clean,
-                "mutationReady": repository_context.mode == RepositoryMode.INSTANCE and config_valid and worktree_clean,
+                "currentBranch": branch,
+                "mutationReady": repository_context.mode == RepositoryMode.INSTANCE and config_valid and worktree_clean and branch == "main",
             }
             if config_error:
                 result["configError"] = config_error
@@ -139,6 +144,7 @@ def main(argv=None):
                 print(f"Baseline 추적: {result['baselineTracked']}")
                 print(f"설정 유효: {result['configValid']}")
                 print(f"작업 트리 정리됨: {result['worktreeClean']}")
+                print(f"현재 branch: {result['currentBranch'] or 'detached HEAD'}")
                 print(f"원격 변경 준비됨: {result['mutationReady']}")
             return 0
 

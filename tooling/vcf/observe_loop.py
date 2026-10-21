@@ -22,10 +22,16 @@ try:
 except ImportError:  # schema/runner 단위 테스트는 HTTP client 의존성이 없어도 실행한다.
     requests = None
 
-from config_loader import ConfigError, load_source_config, normalize_runtime_config
-from content_observation import complete_observation, normalize_product_status
-from repository import RepositoryMode, detect_repository_context
-from schema_validation import SchemaValidationError, validate_document
+if __package__:
+    from .config_loader import ConfigError, load_source_config, normalize_runtime_config
+    from .content_observation import complete_observation, normalize_product_status
+    from .repository import RepositoryMode, detect_repository_context
+    from .schema_validation import SchemaValidationError, validate_document
+else:
+    from config_loader import ConfigError, load_source_config, normalize_runtime_config
+    from content_observation import complete_observation, normalize_product_status
+    from repository import RepositoryMode, detect_repository_context
+    from schema_validation import SchemaValidationError, validate_document
 
 
 class LoopError(RuntimeError):
@@ -237,9 +243,14 @@ class ObserveLoopRunner:
 
 
 def _build_observer(repository_root: Path, source_config: dict, products: list[str]):
-    from vcf_sync import get_vra_status, get_vro_status
-    from vra_client import VraClient
-    from vro_client import from_runtime_config
+    if __package__:
+        from .vcf_sync import get_vra_status, get_vro_status
+        from .vra_client import VraClient
+        from .vro_client import from_runtime_config
+    else:
+        from vcf_sync import get_vra_status, get_vro_status
+        from vra_client import VraClient
+        from vro_client import from_runtime_config
 
     config = normalize_runtime_config(source_config)
     target = {

@@ -12,7 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from content_identity import validate_identities
+if __package__:
+    from .content_identity import validate_identities
+else:
+    from content_identity import validate_identities
 
 
 PREVIEW_API_VERSION = "gitops.vcf.example/v1alpha1"

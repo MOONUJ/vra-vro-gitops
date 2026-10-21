@@ -53,7 +53,7 @@ Workflow와 Action처럼 여러 단계에서 사용되는 콘텐츠는 복제하
 - `secrets.json`에는 refresh token 같은 자격 증명만 기록하고 커밋하지 않는다.
 - 설정 스키마를 바꾸면 loader, 예시, 문서와 테스트를 함께 갱신한다.
 - 단일 `config.json`과 `gitops/` 호환 경로를 다시 도입하지 않는다.
-- native와 Terraform이 동일 원격 리소스를 동시에 소유하게 하지 않는다.
+- Day-0 인프라는 native manifest만 사용한다. 제거된 Terraform 호환 경로를 다시 도입하지 않는다.
 
 ## 브랜치
 
@@ -74,4 +74,4 @@ Workflow와 Action처럼 여러 단계에서 사용되는 콘텐츠는 복제하
 
 ## 검증
 
-변경된 Python compile, 설정·인프라·lifecycle manifest parsing, 테스트, 남아 있는 Terraform의 format, skill validation과 `git diff`를 확인한다. 실제 연결 검증은 별도 단계이며 일반 로컬 검증에 자격 증명을 요구하지 않는다. 원격 변경 전에는 status와 불변 plan을 우선한다. 권한이나 일부 discovery 실패는 빈 목록으로 처리하지 않으며, manifest 파일 부재만으로 원격 리소스를 삭제하지 않는다.
+변경된 Python compile, 설정·인프라·lifecycle manifest parsing, 테스트, skill validation과 `git diff`를 확인한다. 실제 연결 검증은 별도 단계이며 일반 로컬 검증에 자격 증명을 요구하지 않는다. 원격 변경 전에는 status와 불변 plan을 우선한다. 권한이나 일부 discovery 실패는 빈 목록으로 처리하지 않으며, manifest 파일 부재만으로 원격 리소스를 삭제하지 않는다.

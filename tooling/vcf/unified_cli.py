@@ -23,31 +23,52 @@ def main(argv=None) -> int:
     )
     args, remaining = parser.parse_known_args(argv)
     if args.command in {"context", "infrastructure"}:
-        from cli import main as infrastructure_main
+        if __package__:
+            from .cli import main as infrastructure_main
+        else:
+            from cli import main as infrastructure_main
 
         return infrastructure_main((["context"] if args.command == "context" else []) + remaining)
     if args.command == "content":
-        from vcf_sync import main as content_main
+        if __package__:
+            from .vcf_sync import main as content_main
+        else:
+            from vcf_sync import main as content_main
 
         return content_main(remaining)
     if args.command == "release":
-        from vcf_release import main as release_main
+        if __package__:
+            from .vcf_release import main as release_main
+        else:
+            from vcf_release import main as release_main
 
         return release_main(remaining)
     if args.command == "schema":
-        from schema_validation import main as schema_main
+        if __package__:
+            from .schema_validation import main as schema_main
+        else:
+            from schema_validation import main as schema_main
 
         return schema_main(remaining)
     if args.command == "identity":
-        from content_identity import main as identity_main
+        if __package__:
+            from .content_identity import main as identity_main
+        else:
+            from content_identity import main as identity_main
 
         return identity_main(remaining)
     if args.command == "template-update":
-        from template_update import main as template_update_main
+        if __package__:
+            from .template_update import main as template_update_main
+        else:
+            from template_update import main as template_update_main
 
         return template_update_main(remaining)
     if args.command == "observe-loop":
-        from observe_loop import main as observe_loop_main
+        if __package__:
+            from .observe_loop import main as observe_loop_main
+        else:
+            from observe_loop import main as observe_loop_main
 
         return observe_loop_main(remaining)
     return 1

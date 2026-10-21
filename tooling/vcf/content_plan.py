@@ -10,7 +10,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from content_pull import tree_hash
+if __package__:
+    from .content_pull import tree_hash
+else:
+    from content_pull import tree_hash
 
 
 PLAN_API_VERSION = "gitops.vcf.example/v1alpha1"

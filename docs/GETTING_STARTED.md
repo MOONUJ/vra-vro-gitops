@@ -29,34 +29,38 @@
 
 External Orchestrator는 Automation과 같은 identity provider의 OAuth bearer를 받아들이는 구성을 전제로 합니다. 별도 username/password와 Basic authentication은 지원하지 않습니다.
 
-## 2. 저장소 생성과 도구 설치
+## 2. 로컬 환경과 인스턴스 설정 준비
 
 GitHub에서 이 저장소의 **Use this template**를 선택해 Automation 하나를 위한 새 저장소를 만듭니다. 생성된 저장소를 clone한 뒤 다음을 실행합니다.
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r tooling/vcf/requirements.txt
-```
-
-0.x 가이드는 저장소에 포함된 Python script를 기준으로 합니다. Wheel을 별도로 설치한 환경에서만 `vcf-gitops` 통합 명령을 사용합니다.
-
-## 3. 인스턴스 설정 생성
-
-```bash
-.venv/bin/python tooling/template/bootstrap.py \
+python3 tooling/template/setup.py \
   --name automation-seoul-dev \
   --endpoint https://automation.example.com \
   --organization default \
   --environment-tag seoul-dev \
-  --package-name com.example.automation.seoul.dev
+  --package-name com.example.automation.seoul.dev \
+  --project actual-project-name
 ```
+
+생략한 필드는 대화형으로 입력합니다. Refresh token은 `getpass`로 숨김 입력하며 명령 기록에 남기지 않습니다. setup은 다음을 순서대로 실행합니다.
+
+1. `.venv` 생성
+2. Python dependency 설치
+3. `instance.yaml` 생성
+4. 권한 `0600`의 `secrets.json`에 refresh token 기록
+5. credential을 출력하지 않는 로컬 설정 검증
+
+비대화식 환경에서는 token을 명령 인자로 넘기지 않고 `VCF_AUTOMATION_REFRESH_TOKEN` 환경변수를 사용합니다. 모든 비밀 없는 필드를 명시하고 `--non-interactive`를 추가해야 합니다.
 
 이 명령은 다음 파일을 준비합니다.
 
 - `instance.yaml`: Git에 추적할 비밀 없는 연결과 관리 범위
 - `secrets.json`: 권한 `0600`인 로컬 비밀값 파일
 
-Bootstrap은 실제 project를 자동으로 알 수 없습니다. `instance.yaml`의 placeholder를 반드시 실제 값으로 바꿉니다.
+`--project`는 반복할 수 있습니다. 생성된 관리 범위를 반드시 검토합니다.
+
+## 3. Orchestrator 연결 확인
 
 ```yaml
 spec:
@@ -101,7 +105,7 @@ spec:
 
 ## 4. 비밀값과 로컬 설정 검증
 
-`secrets.json`의 placeholder를 실제 refresh token으로 바꿉니다.
+setup을 사용하지 않고 `bootstrap.py`만 직접 실행했다면 `secrets.json`의 placeholder를 실제 refresh token으로 바꿉니다.
 
 ```json
 {
@@ -140,11 +144,12 @@ git commit -m "chore: initialize automation instance"
   "baselineTracked": true,
   "configValid": true,
   "worktreeClean": true,
-  "mutationReady": true
+  "currentBranch": "import/initial-baseline",
+  "mutationReady": false
 }
 ```
 
-`mutationReady`는 저장소 경계가 준비됐다는 뜻일 뿐, 기존 원격 상태의 baseline 검토가 끝났다는 뜻은 아닙니다. 다음 import가 완료되기 전에는 apply하지 않습니다.
+Import branch는 아직 승인된 desired state가 아니므로 `mutationReady`가 `false`인 것이 정상입니다. 다음 import와 PR 검토를 마치고 `main`에 병합한 뒤, clean working tree에서만 `mutationReady: true`가 됩니다.
 
 ## 5. 기존 Automation baseline 가져오기
 
@@ -217,7 +222,7 @@ git commit -m "chore: import initial automation baseline"
 git status --short
 ```
 
-Secret, `.gitops/`, Terraform state와 생성 입력이 commit에 포함되지 않았는지 반드시 확인합니다.
+Secret, `.gitops/`, cache와 생성 입력이 commit에 포함되지 않았는지 반드시 확인합니다.
 
 ## 6. 첫 변경 시험
 

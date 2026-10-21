@@ -74,7 +74,7 @@ External에서는 `discovery.mode: package`를 권장합니다. `GET /vco/api/pa
 .venv/bin/python tooling/vcf/cli.py context --json
 ```
 
-`repositoryMode`, `baselineTracked`, `configValid`, `worktreeClean`, `mutationReady`를 각각 출력합니다. 원격 mutation은 인스턴스 모드, 유효한 설정과 커밋된 clean working tree를 모두 요구합니다. 무시되는 `secrets.json`과 `.gitops/` 결과는 clean working tree 판정에서 제외됩니다.
+`repositoryMode`, `baselineTracked`, `configValid`, `worktreeClean`, `currentBranch`, `mutationReady`를 각각 출력합니다. 원격 mutation은 인스턴스 모드, 유효한 설정, `main` branch와 커밋된 clean working tree를 모두 요구합니다. 무시되는 `secrets.json`과 `.gitops/` 결과는 clean working tree 판정에서 제외됩니다.
 
 인프라 manifest도 로컬에서 별도로 검증합니다.
 
@@ -113,7 +113,7 @@ External에서는 `discovery.mode: package`를 권장합니다. `GET /vco/api/pa
 
 ## Native plan과 apply
 
-`management.infrastructure: native`인 인스턴스 저장소에서는 먼저 불변 plan을 생성합니다.
+인스턴스 저장소의 Day-0 인프라는 `management.infrastructure: native`와 리소스별 manifest로만 관리합니다. 먼저 불변 plan을 생성합니다.
 
 ```bash
 .venv/bin/python tooling/vcf/cli.py status --json
@@ -141,10 +141,6 @@ Plan artifact의 작업, before/after, 대상 인스턴스, 만료 시각과 has
 | `CloudAccount`, `CloudZone` | 관찰 전용 | 관찰 전용 | 미지원 |
 
 공식 mutation payload가 표현하지 못하는 필드 변경이나 기존 필드의 암묵적 제거는 plan 단계에서 거부합니다. Profile CREATE에는 `regionId`가 필요하며, 기존 Profile UPDATE는 원격 region 링크에서 ID를 안전하게 보완할 수 있습니다.
-
-## Terraform 호환 경로
-
-`foundation/automation/terraform/`은 이전 또는 선택적 greenfield 흐름을 위해 남아 있습니다. `management.infrastructure: native`인 저장소에서는 Terraform 입력을 생성하지 않으며 동일 리소스를 native 도구와 Terraform이 동시에 소유하면 안 됩니다.
 
 ## 자동화 실행 환경
 

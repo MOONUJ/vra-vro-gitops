@@ -52,7 +52,7 @@ stateDiagram-v2
 - 네트워크나 일시적 서버 오류만 제한된 횟수로 backoff 재시도합니다.
 - 같은 drift가 반복되거나 검증 후에도 수렴하지 않으면 중단하고 사람에게 인계합니다.
 - 한 loop가 Day-0, Day-1, Day-2를 임의로 넘나들지 않습니다. 단계 전환은 별도 승인 이벤트입니다.
-- `apply`, `restore`, `push-all`, `terraform apply` 같은 원격 변경은 무인 기본 동작으로 두지 않습니다.
+- `apply`, `restore`, `push-all` 같은 원격 변경은 무인 기본 동작으로 두지 않습니다.
 
 ## 제안하는 정의 형식
 
@@ -77,7 +77,7 @@ spec:
     backoffSeconds: 2
   repeatDriftThreshold: 3
   approval:
-    requiredFor: [native-apply, push, push-all, restore, terraform-apply]
+    requiredFor: [native-apply, push, push-all, restore]
 ```
 
 인스턴스 저장소에서는 파일명의 `.example`을 제거하고 `instanceRef`를 맞춘 뒤 별도 검토를 거쳐 `enabled: true`로 변경합니다. 예시 파일, 비활성 Loop, 추적되지 않은 `instance.yaml`, 잘못된 `instanceRef`는 원격 조회 전 차단됩니다.

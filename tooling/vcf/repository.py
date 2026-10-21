@@ -164,12 +164,37 @@ def is_worktree_clean(context: RepositoryContext) -> bool:
     return not result.stdout.strip()
 
 
+def current_branch(context: RepositoryContext) -> str | None:
+    """현재 branch를 반환한다. detached HEAD는 승인된 main으로 취급하지 않는다."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(context.root), "symbolic-ref", "--quiet", "--short", "HEAD"],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+    except OSError as exc:
+        raise RepositoryContextError(f"Git branch를 확인하지 못했습니다: {exc}") from exc
+    if result.returncode == 0:
+        return result.stdout.strip()
+    if result.returncode == 1:
+        return None
+    detail = result.stderr.strip() or f"git 종료 코드 {result.returncode}"
+    raise RepositoryContextError(f"Git branch를 확인하지 못했습니다: {detail}")
+
+
 def require_operation_allowed(context: RepositoryContext, operation: str, require_clean: bool = True) -> None:
     """operation registry에 따라 원격 mutation의 공통 저장소 경계를 강제한다."""
     operation_class = classify_operation(operation)
     if operation_class != OperationClass.REMOTE_MUTATION:
         return
     require_instance_mode(context, operation)
+    branch = current_branch(context)
+    if branch != "main":
+        label = branch or "detached HEAD"
+        raise RepositoryContextError(
+            f"{operation}은 승인된 desired state인 main branch에서만 실행할 수 있습니다. 현재: {label}"
+        )
     if require_clean and not is_worktree_clean(context):
         raise RepositoryContextError(
             f"{operation}은 추적 파일 변경이 없는 인스턴스 저장소에서만 실행할 수 있습니다. "
